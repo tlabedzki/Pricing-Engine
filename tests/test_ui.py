@@ -143,13 +143,16 @@ def test_missing_data_shows_how_to_get_it(monkeypatch):
 
 @pytest.mark.skipif(not (data.RAW_DIR / "product_data.parquet").exists(),
                     reason="needs the shop data from scripts/get_data.py")
-def test_same_numbers_as_version_1_0_0(monkeypatch):
-    """Release 1.0.0 (Streamlit) showed these numbers for the default rules and for ?above=10&step=15."""
+def test_headline_numbers_on_data_generator_1_7_1(monkeypatch):
+    """
+    The app's numbers for the default rules and for ?above=10&step=15 on Data-Generator v1.7.1 (net prices without
+    23% VAT). On v1.6.0 they were 8.09M, 21.11M, 67,828, 20.5k, +3.0% and 8.40M, 20.82M, 65,841, 26.5k, +7.2%.
+    """
     monkeypatch.setattr(ui_app, "prepare", REAL_PREPARE)
     ui_app.proposals_for.cache_clear()
     for rules, expected in (
-        ((15, 5, 10, 0), ["8.09M", "21.11M", "67,828", "20.5k", "+3.0%"]),
-        ((15, 10, 15, 0), ["8.40M", "20.82M", "65,841", "26.5k", "+7.2%"]),
+        ((15, 5, 10, 0), ["8.33M", "21.34M", "67,701", "20.8k", "+3.1%"]),
+        ((15, 10, 15, 0), ["8.66M", "21.05M", "65,746", "26.7k", "+7.2%"]),
     ):
         stats = ui_app.update_result(*rules, None)[0]
         assert [s.children[0].children for s in stats] == expected

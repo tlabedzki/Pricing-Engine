@@ -3,6 +3,25 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] - proposed 1.1.2
+
+The engine and the app are unchanged; the shop data and every number built on them change.
+
+### Changed
+
+- Data from Data-Generator v1.7.1 instead of v1.6.0 (`DATA_GENERATOR_TAG`). In v1.7.1 every net price is the gross
+  price without 23% VAT; before, net prices ran from 1/1.18 to 1/4.33 of the gross price. List prices with VAT,
+  orders and the estimated elasticity stay the same, so only the margin side moves: yearly gross profit before any
+  change is PLN 8.09M instead of 7.86M, and the base scenario gives +3.0% instead of +2.9% (+3.1% with the true
+  elasticity, was +3.0%), raising 20,765 prices and lowering 13,376 (was 20,475 and 13,715). Competitor prices
+  follow the corrected market price (636,646 price periods, was 636,742).
+- README numbers, the six charts, the animated demo and the notebook outputs are rebuilt on the new data; the app
+  test pins the new headline numbers (default rules PLN 8.33M, bold rules PLN 8.66M).
+
+### Fixed
+
+- README: "no category loses" when no category loses profit (it read "no category lose").
+
 ## [1.1.1] - 2026-11-24
 
 Only the README and its demo change; the engine and the app stay as in 1.1.0.

@@ -195,7 +195,7 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"(docs/img/scenarios.png)\n\n"
             f"Drawing the elasticity from its intervals, the base profit change stays between {pct(low)} and "
             f"{pct(high)} in 90% of draws. {cat(facts['categories']['top'])} gains the most; "
-            f"{', '.join(negative) if negative else 'no category'} lose{'s' if len(negative) == 1 else ''}.\n\n"
+            f"{', '.join(negative) if negative else 'no category'} lose{'s' if len(negative) <= 1 else ''}.\n\n"
             f"![{cat(facts['categories']['top'])} gains the most](docs/img/categories.png)")
         out["verdicts"] = (
             f"The elasticity hits the truth in {e['hits']} of {e['n']} categories, and the base profit predicted from "

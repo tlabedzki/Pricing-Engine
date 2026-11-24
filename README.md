@@ -17,23 +17,23 @@ eats the margin, and a rise without the numbers can eat the sales.
 the price with the highest expected profit. The data come with an answer key, so the result can be checked.
 
 <!-- generated:result -->
-**Result.** The engine checks the prices of 42,748 products and changes 34,190; in the base scenario yearly gross profit
-grows by +2.9% while net revenue changes by −0.6%. The same prices judged with the true elasticity give +3.0%, and the
+**Result.** The engine checks the prices of 42,748 products and changes 34,141; in the base scenario yearly gross profit
+grows by +3.0% while net revenue changes by −0.6%. The same prices judged with the true elasticity give +3.1%, and the
 elasticity estimate hits the truth in 12 of 15 categories.
 <!-- /generated:result -->
 
 <!-- generated:hero -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">
-  <img alt="The app, animated: the page scrolls to the rules, the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%, and yearly gross profit moves from PLN 8.09M (+2.9%) through PLN 8.28M to PLN 8.40M (+6.9%); then the proposals table shows only the lowered prices and the Categories tab draws the profit change per category and the rule that decides the prices" src="docs/img/app-demo.svg">
+  <img alt="The app, animated: the page scrolls to the rules, the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%, and yearly gross profit moves from PLN 8.33M (+3.0%) through PLN 8.52M to PLN 8.66M (+7.0%); then the proposals table shows only the lowered prices and the Categories tab draws the profit change per category and the rule that decides the prices" src="docs/img/app-demo.svg">
 </picture>
 <!-- /generated:hero -->
 
 **Stack:** Python · pandas · DuckDB · SQL · SciPy · Dash · Mantine · Plotly · matplotlib · pytest
 
 <!-- generated:summary -->
-- **What worked:** the profit predicted from the data (+2.9%) is 0.1 points from the profit with the true elasticity
-  (+3.0%); discounts and list-price changes together give a mean elasticity error of 0.12.
+- **What worked:** the profit predicted from the data (+3.0%) is 0.1 points from the profit with the true elasticity
+  (+3.1%); discounts and list-price changes together give a mean elasticity error of 0.12.
 - **What missed:** in 3 categories the truth lies outside the estimate's interval: Health (0.47 vs 0.60), Books & Media
   (0.85 vs 1.00), Electronics (1.83 vs 1.60); 22% of products stay above the competitor limit, because one step is not
   enough or the minimum margin does not allow it.
@@ -55,7 +55,7 @@ to change, by how much and what happens next.
 
 ## 2. How we know the truth
 
-The data come from [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.6.0 (seed 42), which sets how
+The data come from [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.7.1 (seed 42), which sets how
 customers react to price. Those settings are the answer key:
 
 - `category_price_elasticity`: price elasticity in a category, how many percent sales fall after a 1% price rise (1.8
@@ -119,13 +119,13 @@ minimum margin needs a price above the competitor limit, the margin wins, and th
 **Result.**
 
 <!-- generated:proposals -->
-Of 42,748 products on sale the engine raises 20,475 prices, lowers 13,715 and keeps 8,558. Within +5% of the competitor
+Of 42,748 products on sale the engine raises 20,765 prices, lowers 13,376 and keeps 8,607. Within +5% of the competitor
 median today: 62% of products with a competitor offer, after the changes 78%.
 
 ![After the changes 78% of products sit within +5% of the competitors](docs/img/price-index.png)
 
-The competitor limit or the largest step decides 40,042 proposals (94%), a margin-versus-market conflict 2,477, and the
-profit calculation alone only 229.
+The competitor limit or the largest step decides 40,014 proposals (94%), a margin-versus-market conflict 2,241, and the
+profit calculation alone only 493.
 
 ![The competitor limit or the largest step stops most prices](docs/img/decision-rules.png)
 <!-- /generated:proposals -->
@@ -152,14 +152,14 @@ profit.
 <!-- generated:scenarios -->
 | Scenario | Rules | Gross profit | Net revenue | Units | Raised / lowered |
 |---|---|---|---|---|---|
-| cautious | up to the competitor median, 5% steps, demand 1.64 SE more sensitive | +0.6% | +0.1% | +0.6% | 13,179 / 15,713 |
-| base | +5% over the median, 10% steps | +2.9% | −0.6% | −0.2% | 20,475 / 13,715 |
-| bold | +10% over the median, 15% steps | +6.9% | −2.0% | −3.2% | 26,517 / 10,047 |
+| cautious | up to the competitor median, 5% steps, demand 1.64 SE more sensitive | +0.6% | +0.1% | +0.6% | 13,363 / 15,542 |
+| base | +5% over the median, 10% steps | +3.0% | −0.6% | −0.4% | 20,765 / 13,376 |
+| bold | +10% over the median, 15% steps | +7.0% | −2.0% | −3.3% | 26,728 / 9,826 |
 
-![Base scenario: +2.9% gross profit at −0.6% revenue](docs/img/scenarios.png)
+![Base scenario: +3.0% gross profit at −0.6% revenue](docs/img/scenarios.png)
 
-Drawing the elasticity from its intervals, the base profit change stays between +2.8% and +3.0% in 90% of draws.
-Electronics gains the most; Books & Media loses.
+Drawing the elasticity from its intervals, the base profit change stays between +2.9% and +3.1% in 90% of draws.
+Electronics gains the most; no category loses.
 
 ![Electronics gains the most](docs/img/categories.png)
 <!-- /generated:scenarios -->
@@ -184,8 +184,8 @@ keeps the rules, so `/?above=10&step=15` opens the app with a limit of +10% and 
 ## 7. Analysis against the truth
 
 <!-- generated:verdicts -->
-The elasticity hits the truth in 12 of 15 categories, and the base profit predicted from the data (+2.9%) matches the
-profit with the true elasticity (+3.0%).
+The elasticity hits the truth in 12 of 15 categories, and the base profit predicted from the data (+3.0%) matches the
+profit with the true elasticity (+3.1%).
 
 | Question | Answer from the data | Truth | Verdict |
 |---|---|---|---|
@@ -195,7 +195,7 @@ profit with the true elasticity (+3.0%).
 | Elasticity: Clothing | 1.81 [1.76, 1.87] | 1.80 | hit |
 | Elasticity: Beauty | 1.20 [1.07, 1.33] | 1.20 | hit |
 | Other 10 categories | inside the interval | see the chart in chapter 3 | hit |
-| Profit change, base scenario | +2.9% [+2.8%, +3.0%] | +3.0% | miss, outside the interval |
+| Profit change, base scenario | +3.0% [+2.9%, +3.1%] | +3.1% | miss, outside the interval |
 | Revenue change, base scenario | −0.6% | −0.4% | 0.2 points apart |
 <!-- /generated:verdicts -->
 
@@ -269,7 +269,7 @@ python scripts/get_data.py
 python main.py
 ```
 
-`get_data.py` clones Data-Generator v1.6.0 and generates the shop data (about 15 s). `main.py` prints the elasticity,
+`get_data.py` clones Data-Generator v1.7.1 and generates the shop data (about 15 s). `main.py` prints the elasticity,
 sample proposals and the scenarios, and saves CSV files and `summary.json` to `output/` (about 15 s).
 
 ### Command line
@@ -284,7 +284,7 @@ takes a few seconds while the elasticity is estimated; Ctrl+C in the terminal st
 
 ## Data
 
-The data are synthetic: [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.6.0 (MIT license), seed 42,
+The data are synthetic: [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.7.1 (MIT license), seed 42,
 generated by `scripts/get_data.py` into `data/raw/` (outside git). The engine reads four of its 15 tables. Product
 brands are real, but the products, prices, margins and sales are fictional and say nothing about those brands. The
 competitor shops (Frugalia, Aequo, Maison Orvelle, Mercatoria, Fulmina) are fictional.
@@ -315,7 +315,7 @@ erDiagram
 ```
 
 Column descriptions:
-[docs/columns.md in Data-Generator](https://github.com/tlabedzki/Data-Generator/blob/v1.6.0/docs/columns.md).
+[docs/columns.md in Data-Generator](https://github.com/tlabedzki/Data-Generator/blob/v1.7.1/docs/columns.md).
 The true elasticity goes to `data/raw/truth.json` straight from the generator settings.
 
 ## Project structure

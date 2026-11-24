@@ -1,0 +1,22 @@
+[project]
+name = "pricing-engine"
+version = "0.1.0"
+description = "Price proposals for a fictional online shop from estimated price elasticity, competitor prices and margin rules"
+requires-python = ">=3.11"
+license = "MIT"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = [".cache", "output"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pricing_engine"]

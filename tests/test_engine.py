@@ -156,3 +156,16 @@ def test_snapshot_joins_elasticity_and_competitors(products):
     assert (table.loc[table["offers"] > 0, "competitor_median"] > 0).all()
     out = propose(table)
     assert len(out) == len(table)
+
+
+def test_a_competitor_promotion_counts_at_the_regular_price():
+    offers = pd.DataFrame({
+        "product_id": [1, 1, 1, 1], "competitor_id": [5, 5, 5, 1], "price_gross": [100.0, 70.0, 100.0, 90.0],
+        "valid_from": pd.to_datetime(["2024-01-01", "2024-12-28", "2025-01-02", "2024-01-01"]),
+        "valid_to": pd.to_datetime(["2024-12-27", "2025-01-01", None, None]),
+        "is_promotion": [False, True, False, False],
+    })
+    result = current_competitor_prices(offers, pd.Timestamp("2024-12-31"))
+    assert result.loc[1, "competitor_min"] == 90
+    assert result.loc[1, "competitor_median"] == 95
+    assert result.loc[1, "offers"] == 2

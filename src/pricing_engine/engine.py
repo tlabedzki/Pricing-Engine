@@ -38,7 +38,15 @@ def round_to_9(price: np.ndarray) -> np.ndarray:
 
 
 def current_competitor_prices(competitor_prices: pd.DataFrame, day: pd.Timestamp) -> pd.DataFrame:
-    """Median, lowest price and number of competitor offers valid on `day`, per product."""
+    """
+    Median, lowest price and number of competitor offers valid on `day`, per product. A short promotion
+    (`is_promotion`, Data-Generator 1.6.0 and later) counts at the competitor's regular price before it.
+    """
+    if "is_promotion" in competitor_prices.columns and competitor_prices["is_promotion"].any():
+        prices = competitor_prices.sort_values(["product_id", "competitor_id", "valid_from"])
+        regular = prices["price_gross"].where(~prices["is_promotion"].astype(bool))
+        regular = regular.groupby([prices["product_id"], prices["competitor_id"]]).ffill()
+        competitor_prices = prices.assign(price_gross=regular.fillna(prices["price_gross"]))
     valid = (competitor_prices["valid_from"] <= day) & (
         competitor_prices["valid_to"].isna() | (competitor_prices["valid_to"] >= day))
     offers = competitor_prices.loc[valid]

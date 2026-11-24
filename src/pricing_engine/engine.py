@@ -160,8 +160,8 @@ def propose(table: pd.DataFrame, rules: Rules = Rules()) -> pd.DataFrame:
     old_profit, old_units = _profit(current, current, units, elasticity, vat, discount, cost)
     net_factor = (1 - discount) / vat
 
-    out = t[["product_id", "product_name", "category", "brand", "unit_cost", "offers", "competitor_median",
-             "competitor_min", "elasticity_se"]].copy()
+    out = t[["product_id", "product_name", "category", "brand", "unit_cost", "vat_ratio", "average_discount",
+             "offers", "competitor_median", "competitor_min", "elasticity_se"]].copy()
     out["elasticity"] = elasticity
     out["current_price"] = current
     out["proposed_price"] = best

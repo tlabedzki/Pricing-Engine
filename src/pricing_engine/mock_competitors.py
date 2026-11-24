@@ -25,7 +25,7 @@ STRATEGIES = {
     4: {"name": "Mock Marketplace", "strategy": "marketplace", "level": 0.97, "sd": 0.10, "coverage": 0.80,
         "changes_per_year": 3.0, "ending": "99"},
 }
-MARKET_TREND_PER_YEAR = 0.025
+MARKET_TREND_PER_YEAR = 0.0  # v1.5.0 keeps the anchor constant, so the level holds on every day
 CHANGE_SD = 0.03
 MIN_TYPE_SIZE = 20
 

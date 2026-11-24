@@ -97,7 +97,7 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"Prawdziwa wartość leży w 90% przedziale w {e['hits']} z {e['n']} kategorii.\n\n"
             f"![Szacunek elastyczności trafia w prawdę w {e['hits']} z {e['n']} kategorii]"
             f"(docs/img/elasticity-vs-truth.png)\n\n"
-            f"Na czerwono kategorie, w których prawda wypada poza przedziałem: {miss_list()}.")
+            f"Na miedziano kategorie, w których prawda wypada poza przedziałem: {miss_list()}.")
         out["proposals"] = (
             f"Na {n(total)} produktów w sprzedaży silnik podnosi {n(base['raise'])} cen, obniża {n(base['lower'])} "
             f"i zostawia {n(base['keep'])}. W progu +5% nad medianą konkurencji mieści się dziś "
@@ -164,7 +164,7 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"The true value lies in the 90% interval in {e['hits']} of {e['n']} categories.\n\n"
             f"![The elasticity estimate hits the truth in {e['hits']} of {e['n']} categories]"
             f"(docs/img/elasticity-vs-truth.png)\n\n"
-            f"In red, the categories whose truth falls outside the interval: {miss_list()}.")
+            f"In copper, the categories whose truth falls outside the interval: {miss_list()}.")
         out["proposals"] = (
             f"Of {n(total)} products on sale the engine raises {n(base['raise'])} prices, lowers {n(base['lower'])} "
             f"and keeps {n(base['keep'])}. Within +5% of the competitor median today: "

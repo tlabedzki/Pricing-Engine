@@ -5,8 +5,9 @@ Render the README charts to docs/img/ and write the README numbers between its `
     python scripts/make_charts.py --lang en    # English notation, for the public release
 
 Needs the data from scripts/get_data.py. Also rebuilds the animated hero (scripts/make_demo_svg.py, which starts the
-app for its screenshots) unless --demo reuse or --demo skip. Charts use the light palette of the dataviz skill on a
-solid white background, so they look the same in GitHub's light and dark themes. Two runs give the same bytes.
+app for its screenshots) unless --demo reuse or --demo skip. Charts use the portfolio look (Inter with tabular
+figures, teal and copper from src/pricing_engine/theme.py) on a solid white background, so they look the same in
+GitHub's light and dark themes. Two runs give the same bytes.
 """
 from __future__ import annotations
 
@@ -30,13 +31,16 @@ from PIL import Image  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pricing_engine import data, elasticity, engine, simulate  # noqa: E402
+import inter_font  # noqa: E402  (scripts/ is on sys.path when this file runs)
+
+from pricing_engine import data, elasticity, engine, simulate, theme  # noqa: E402
 
 IMG = ROOT / "docs" / "img"
 README = ROOT / "README.md"
 
-BLUE, ORANGE, AQUA, RED = "#2a78d6", "#eb6834", "#1baf7a", "#e34948"
-INK, INK_2, MUTED, GRID, AXIS, KEEP = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#b5b3ab"
+# The portfolio look (Data-Generator, src/pricing_engine/theme.py): teal data, one copper highlight, grey context.
+PRIMARY, ACCENT, KEEP = theme.PRIMARY, theme.ACCENT, theme.MIST
+INK, INK_2, MUTED, GRID, AXIS = theme.INK, theme.TEXT, theme.MUTED, theme.LINE, "#cfd6d8"
 DPI = 160
 WIDTH = 8.0
 
@@ -129,9 +133,20 @@ class Format:
         return f"PLN {value / 1e6:.2f}M"
 
 
+def register_inter() -> None:
+    """Inter from app/static/fonts at the two weights the charts use, tabular digits, Latin Extended as fallback."""
+    from matplotlib import font_manager
+
+    for weight in (400, 600):
+        for ext in (False, True):
+            font_manager.fontManager.addfont(str(inter_font.static_instance(weight, ext)))
+
+
 def style() -> None:
+    register_inter()
     plt.rcParams.update({
-        "font.family": ["Segoe UI", "DejaVu Sans"], "font.size": 10, "axes.edgecolor": AXIS, "axes.labelcolor": INK_2,
+        "font.family": ["Inter", "Inter Ext"], "font.size": 10, "text.color": INK, "axes.edgecolor": AXIS,
+        "axes.labelcolor": INK_2,
         "xtick.color": INK_2, "ytick.color": INK_2, "axes.spines.top": False, "axes.spines.right": False,
         "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.8, "axes.axisbelow": True,
         "figure.facecolor": "#ffffff", "axes.facecolor": "#ffffff", "savefig.facecolor": "#ffffff",
@@ -158,8 +173,8 @@ def place_titles(fig, ax, title: str, subtitle: str) -> None:
     """Title and subtitle aligned with the left edge of the tick labels, above the plot."""
     fig.canvas.draw()
     left = min(t.get_window_extent().x0 for t in ax.get_yticklabels() if t.get_text()) / fig.bbox.width
-    fig.text(left, 1.0, title, ha="left", va="bottom", fontsize=13.5, family="Segoe UI Semibold", color=INK)
-    fig.text(left, 0.995, subtitle, ha="left", va="top", fontsize=9.5, color=INK_2)
+    fig.text(left, 1.0, title, ha="left", va="bottom", fontsize=13.5, fontweight=600, color=INK)
+    fig.text(left, 0.995, subtitle, ha="left", va="top", fontsize=9.5, color=MUTED)
 
 
 def label_category(text: dict, category: str) -> str:
@@ -173,13 +188,14 @@ def chart_elasticity(table: pd.DataFrame, text: dict, fmt: Format) -> dict:
     hit = (t["true_elasticity"] >= low) & (t["true_elasticity"] <= high)
     fig, ax = new_figure(5.6, 0.9)
     y = np.arange(len(t))
-    ax.hlines(y, low, high, color=BLUE, linewidth=2, alpha=0.45, capstyle="round")
-    ax.scatter(t["elasticity"], y, s=46, color=BLUE, zorder=3, label=text["estimate"], edgecolor="white", linewidth=1.2)
-    ax.scatter(t["true_elasticity"], y, s=52, marker="D", color=ORANGE, zorder=4, label=text["truth"],
+    ax.hlines(y, low, high, color=PRIMARY, linewidth=2, alpha=0.45, capstyle="round")
+    ax.scatter(t["elasticity"], y, s=46, color=PRIMARY, zorder=3, label=text["estimate"], edgecolor="white",
+               linewidth=1.2)
+    ax.scatter(t["true_elasticity"], y, s=52, marker="D", color=ACCENT, zorder=4, label=text["truth"],
                edgecolor="white", linewidth=1.2)
     ax.set_yticks(y, [label_category(text, c) for c in t["category"]])
     for tick, ok in zip(ax.get_yticklabels(), hit, strict=True):
-        tick.set_color(INK if ok else RED)
+        tick.set_color(INK if ok else ACCENT)
     ax.set_xlabel(text["elasticity_axis"])
     ax.grid(axis="y", visible=False)
     ax.set_xlim(0, max(high.max(), t["true_elasticity"].max()) + 0.15)
@@ -201,7 +217,7 @@ def chart_index(proposals: pd.DataFrame, text: dict, fmt: Format, rules: engine.
     within_before = float((p["index_before"] <= 1 + rules.max_above_market + 1e-9).mean())
     fig, ax = new_figure(3.9, 0.86)
     ax.stairs(before, bins, color=MUTED, linewidth=2, label=text["before"])
-    ax.stairs(after, bins, color=BLUE, linewidth=2, label=text["after"])
+    ax.stairs(after, bins, color=PRIMARY, linewidth=2, label=text["after"])
     top = max(before.max(), after.max())
     for x, label, side in ((1.0, text["median"], "right"), (1 + rules.max_above_market, text["limit"], "left")):
         ax.axvline(x, color=INK_2, linewidth=1, linestyle=(0, (3, 3)))
@@ -227,7 +243,7 @@ def chart_rules(proposals: pd.DataFrame, text: dict, fmt: Format) -> dict:
     fig, ax = new_figure(3.9, 0.86, width=6.6)
     y = np.arange(len(table))
     left = np.zeros(len(table))
-    for action, color in (("raise", BLUE), ("lower", ORANGE), ("keep", KEEP)):
+    for action, color in (("raise", PRIMARY), ("lower", ACCENT), ("keep", KEEP)):
         values = table[action].to_numpy()
         ax.barh(y, values, left=left, color=color, height=0.62, label=text[action], edgecolor="white", linewidth=1.5)
         left += values
@@ -250,8 +266,9 @@ def chart_scenarios(frame: pd.DataFrame, true_profit: float, text: dict, fmt: Fo
     fig, ax = new_figure(3.0, 0.78)
     y = np.arange(len(f))
     h = 0.34
-    ax.barh(y + h / 2, f["profit_change"], height=h, color=BLUE, label=text["profit"], edgecolor="white", linewidth=1)
-    ax.barh(y - h / 2, f["revenue_change"], height=h, color=ORANGE, label=text["revenue"], edgecolor="white",
+    ax.barh(y + h / 2, f["profit_change"], height=h, color=PRIMARY, label=text["profit"], edgecolor="white",
+            linewidth=1)
+    ax.barh(y - h / 2, f["revenue_change"], height=h, color=ACCENT, label=text["revenue"], edgecolor="white",
             linewidth=1)
     base = list(f.index).index("base")
     ax.scatter([true_profit], [base + h / 2], marker="D", s=46, color=INK, zorder=4, label=text["true_profit"],
@@ -281,7 +298,7 @@ def chart_categories(by_category: pd.DataFrame, text: dict, fmt: Format) -> dict
     t = by_category.sort_values("profit_change").reset_index(drop=True)
     fig, ax = new_figure(3.6, 0.86)
     y = np.arange(len(t))
-    colors = np.where(t["profit_change"] >= 0, BLUE, RED)
+    colors = np.where(t["profit_change"] >= 0, PRIMARY, ACCENT)
     ax.barh(y, t["profit_change"], color=colors, height=0.62, edgecolor="white", linewidth=1)
     span = t["profit_change"].max() - min(t["profit_change"].min(), 0)
     for yi, value in zip(y, t["profit_change"], strict=True):

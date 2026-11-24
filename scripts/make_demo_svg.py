@@ -21,6 +21,7 @@ import asyncio
 import base64
 import io
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -31,15 +32,15 @@ import urllib.request
 from pathlib import Path
 
 import websockets
-from fontTools import subset
-from fontTools.ttLib import TTFont
-from fontTools.varLib import instancer
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+import inter_font  # noqa: E402  (scripts/ is on sys.path when this file runs)
+
 from pricing_engine import data, elasticity, engine, report  # noqa: E402
+from pricing_engine import theme as look  # noqa: E402
 
 OUT_DIR = ROOT / "docs" / "img"
 DEBUG_PORT, APP_PORT = 9335, 8597
@@ -50,7 +51,7 @@ BAR = 36  # browser bar above the page
 LIMIT = 500 * 1024  # bytes per SVG
 EASE = "cubic-bezier(.65,0,.35,1)"
 EASE_OUT = "cubic-bezier(.22,1,.36,1)"
-PRIMARY = "#2a78d6"
+PRIMARY = look.PRIMARY
 BROWSERS = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -97,12 +98,14 @@ GEOMETRY_JS = """(() => {
   const box = e => { const r = e.getBoundingClientRect(); return {x: r.left, y: r.top, w: r.width, h: r.height}; };
   const style = e => { const s = getComputedStyle(e);
     return {color: s.color, background: s.backgroundColor, size: parseFloat(s.fontSize), weight: s.fontWeight,
-            radius: s.borderRadius}; };
+            radius: s.borderRadius, spacing: parseFloat(s.letterSpacing) || 0}; };
   const sliders = [...document.querySelectorAll('[data-testid="stSlider"]')].map(el => {
     const input = el.querySelector('input[type="range"]');
     const thumb = input.parentElement.parentElement;
     const label = el.querySelector('[data-testid="stSliderThumbValue"]');
-    return {thumb: box(thumb), track: box(thumb.parentElement), label: box(label), label_text: label.textContent,
+    const title = el.querySelector('[data-testid="stWidgetLabel"]');
+    return {title: title ? box(title) : null, thumb: box(thumb), track: box(thumb.parentElement),
+            label: box(label), label_text: label.textContent,
             label_style: style(label.querySelector('p') || label), thumb_style: style(thumb),
             min: +input.min, max: +input.max, value: +input.value, row: box(el)};
   });
@@ -258,24 +261,23 @@ def path_value(stops: list[tuple[float, float]], t: float) -> float:
     return stops[-1][1]
 
 
-def font_face(text: str) -> tuple[str, TTFont]:
-    """Source Sans (the app's font, from Streamlit's static files) at weight 400, only the characters in text."""
-    import streamlit
+def font_faces(text: str, weights: set[int]):
+    """Inter (the app's font, app/static/fonts) at each weight the vector texts use, only the characters in text,
+    with tabular digits like the app. Returns the @font-face rules and one of the fonts (same line metrics)."""
+    rules, font = [], None
+    for weight in sorted(weights):
+        family = f"PeInter{weight}"
+        rule, font = inter_font.embedded_face(family, weight, text)
+        rules.append(rule + f".w{weight}{{font-family:{family},Inter,'Segoe UI',sans-serif}}")
+    return "".join(rules), font
 
-    media = Path(streamlit.__file__).parent / "static" / "static" / "media"
-    source = next(media.glob("SourceSansVF-Upright*.woff2"))
-    font = instancer.instantiateVariableFont(TTFont(source), {"wght": 400})
-    options = subset.Options()
-    options.flavor = "woff2"
-    sub = subset.Subsetter(options)
-    sub.populate(text=text)
-    sub.subset(font)
-    font.flavor = "woff2"
-    font.recalcTimestamp = False  # two runs give the same bytes
-    buffer = io.BytesIO()
-    font.save(buffer)
-    data = base64.b64encode(buffer.getvalue()).decode()
-    return f"@font-face{{font-family:PeSans;src:url(data:font/woff2;base64,{data}) format('woff2')}}", font
+
+def weight_of(style: dict) -> int:
+    return int(float(style["weight"]))
+
+
+def spacing(style: dict, k: float) -> str:
+    return f' letter-spacing="{style.get("spacing", 0) * k:.2f}"' if style.get("spacing") else ""
 
 
 def webp(image: Image.Image, quality: int) -> str:
@@ -349,9 +351,12 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
     def box(b: dict) -> tuple[float, float, float, float]:
         return b["x"] * k, b["y"] * k, b["w"] * k, b["h"] * k
 
-    # Source Sans for every vector text, with its line metrics for the baselines
+    # Inter for every vector text, at the weights the app uses, with its line metrics for the baselines
     texts = "".join(v for s in STATES for v in values[s].values() if isinstance(v, str)) + "+-%0123456789"
-    face, font = font_face(texts)
+    styles = [style for state in geo["states"].values() for metric in state["metrics"]
+              for style in (metric["value_style"], metric["delta_text_style"]) if style]
+    styles += [s["label_style"] for s in base["sliders"]]
+    face, font = font_faces(texts, {weight_of(style) for style in styles})
     upm = font["head"].unitsPerEm
     ascent, descent = font["hhea"].ascent / upm, -font["hhea"].descent / upm
 
@@ -384,7 +389,8 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
         parts = []
         for metric in geo["states"][name]["metrics"]:
             vs = metric["value_style"]
-            parts.append(f'<text x="{metric["value"]["x"] * k:.2f}" y="{baseline(metric["value"], vs["size"]):.2f}" '
+            parts.append(f'<text class="w{weight_of(vs)}" x="{metric["value"]["x"] * k:.2f}" '
+                         f'y="{baseline(metric["value"], vs["size"]):.2f}"{spacing(vs, k)} '
                          f'font-size="{vs["size"] * k:.2f}" fill="{css_color(vs["color"])}">'
                          f'{metric["value_text"]}</text>')
             if metric["delta"]:
@@ -397,7 +403,7 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
                     turn = "" if metric["icon_kind"].endswith("Up") else " rotate(180 12 12)"
                     parts.append(f'<path d="{ARROW_UP}" transform="translate({ix:.2f} {iy:.2f}) '
                                  f'scale({iw / 24:.4f}){turn}" fill="{css_color(ds["color"])}"/>')
-                parts.append(f'<text x="{metric["delta_text_box"]["x"] * k:.2f}" '
+                parts.append(f'<text class="w{weight_of(ds)}" x="{metric["delta_text_box"]["x"] * k:.2f}" '
                              f'y="{baseline(metric["delta_text_box"], ds["size"]):.2f}" '
                              f'font-size="{ds["size"] * k:.2f}" fill="{css_color(ds["color"])}">'
                              f'{metric["delta_text"]}</text>')
@@ -429,6 +435,8 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
             return tx + (v - s["min"]) / (s["max"] - s["min"]) * tw
 
         y0, y1 = label["y"] - 2, s["thumb"]["y"] + s["thumb"]["h"] + 3
+        if s.get("title"):  # never cover the slider's own label above the value
+            y0 = max(y0, s["title"]["y"] + s["title"]["h"])
         layers.append(f'<rect x="{(tx - radius - 6) * k:.2f}" y="{y0 * k:.2f}" '
                       f'width="{(tw + 2 * radius + 12) * k:.2f}" height="{(y1 - y0) * k:.2f}" fill="{sidebar}"/>')
         bar = (f'y="{(line_y - line_h / 2) * k:.2f}" width="{tw * k:.2f}" height="{line_h * k:.2f}" '
@@ -445,7 +453,7 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
         # the value above the thumb: one text per whole value, shown while the dragged value rounds to it
         labels = []
         for value in range(min(v for _, v in stops), max(v for _, v in stops) + 1):
-            on = [abs(path_value(stops, t) - value) < 0.5 for t in times]
+            on = [math.floor(path_value(stops, t) + 0.5) == value for t in times]  # exactly one value shown
             track_stops = [(0, int(on[0]), "linear")]
             for i in range(1, len(times)):
                 if on[i] != on[i - 1]:
@@ -455,7 +463,7 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
             labels.append(f'<text class="{cls}" x="0" '
                           f'y="{baseline(label, ls["size"]):.2f}" text-anchor="middle">{text}</text>')
         layers.append(f'<g class="{move}"><circle cx="{rest_x * k:.2f}" cy="{cy * k:.2f}" r="{radius * k:.2f}" '
-                      f'fill="{PRIMARY}"/><g transform="translate({rest_x * k:.2f} 0)" '
+                      f'fill="{PRIMARY}"/><g class="w{weight_of(ls)}" transform="translate({rest_x * k:.2f} 0)" '
                       f'font-size="{ls["size"] * k:.2f}" fill="{css_color(ls["color"])}">{"".join(labels)}</g></g>')
         thumbs[index] = lambda v, x_of=x_of, cy=cy: (x_of(v) * k, cy * k)
 
@@ -490,7 +498,7 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
     alt = (f"Pricing Engine app, illustrated: the competitor limit is dragged from +5% to +10% and the largest price "
            f"step from 10% to 15%; yearly gross profit moves from {first['profit']} PLN ({first['profit_delta']}) "
            f"to {last['profit']} PLN ({last['profit_delta']}) and the proposals table updates.")
-    css = (face + "text{font-family:PeSans,'Source Sans 3','Source Sans Pro',sans-serif}"
+    css = (face
            + "".join(m.css) + "@media (prefers-reduced-motion:reduce){*{animation:none!important}}")
     page = "".join(layers)
     out = {}

@@ -93,7 +93,7 @@ average by 0.12. The true value lies in the 90% interval in 12 of 15 categories.
 
 ![The elasticity estimate hits the truth in 12 of 15 categories](docs/img/elasticity-vs-truth.png)
 
-In red, the categories whose truth falls outside the interval: Health (0.47 vs 0.60), Books & Media (0.85 vs 1.00),
+In copper, the categories whose truth falls outside the interval: Health (0.47 vs 0.60), Books & Media (0.85 vs 1.00),
 Electronics (1.83 vs 1.60).
 <!-- /generated:elasticity -->
 
@@ -330,13 +330,16 @@ src/pricing_engine/
   engine.py                     rules, profit-optimal prices ending in 9, reasons
   simulate.py                   scenarios, uncertainty, check with the true elasticity
   report.py                     the five headline numbers shown in the app and the animation
+  theme.py                      colours and font of the portfolio look, shared by the app and the charts
   mock_competitors.py           competitor table for tests and releases before v1.5.0
-app/streamlit_app.py            the app
+app/streamlit_app.py            the app (theme in .streamlit/config.toml)
+app/static/fonts/               Inter, served by the app itself (SIL Open Font License)
 notebooks/01-pricing-engine.ipynb   the whole project step by step
 scripts/get_data.py             clones and runs Data-Generator
 scripts/make_charts.py          README charts and numbers (readme_blocks.py)
 scripts/make_demo_svg.py        the animated app demo at the top (called by make_charts.py)
 scripts/screenshot_app.py       app screenshot for the README
+scripts/inter_font.py           Inter for the charts and the demo, the tabular digits face
 tests/                          pytest
 ```
 
@@ -355,6 +358,7 @@ without them it is skipped, as in CI.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). [Changelog](CHANGELOG.md).
+MIT, see [LICENSE](LICENSE). The Inter typeface in `app/static/fonts/` is under the SIL Open Font License 1.1
+([OFL-inter.txt](app/static/fonts/OFL-inter.txt)). [Changelog](CHANGELOG.md).
 
 README last updated: 2026-11-24

@@ -17,12 +17,25 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from pricing_engine import data, elasticity, engine, report, simulate  # noqa: E402
+from pricing_engine import theme as t  # noqa: E402
 
-BLUE, ORANGE, RED, KEEP, INK_2 = "#2a78d6", "#eb6834", "#e34948", "#b5b3ab", "#52514e"
-ACTION_COLORS = alt.Scale(domain=["raise", "lower", "keep"], range=[BLUE, ORANGE, KEEP])
+ACTION_COLORS = alt.Scale(domain=list(t.ACTIONS), range=list(t.ACTIONS.values()))
 
 st.set_page_config(page_title="Pricing Engine", layout="wide")
-st.markdown("<style>.block-container {padding-top: 2.5rem}</style>", unsafe_allow_html=True)
+# The portfolio look (Data-Generator): Inter and the colours come from .streamlit/config.toml; CSS adds what the
+# theme has no option for: tabular figures on the numbers (the canvas table gets them from the digits face of
+# scripts/inter_font.py), tight bold headings, muted labels and captions.
+st.markdown(f"""<style>
+.block-container {{padding-top: 2.5rem}}
+h1 {{letter-spacing: -0.035em}}
+h2, h3 {{letter-spacing: -0.02em}}
+[data-testid="stMetricValue"], [data-testid="stMetricDelta"], [data-testid="stSliderThumbValue"],
+[data-testid="stSliderTickBar"], [data-testid="stCaptionContainer"],
+[data-testid="stDataFrame"] {{font-feature-settings: {t.NUMBER_FEATURES}}}
+[data-testid="stMetricValue"] {{letter-spacing: -0.02em}}
+[data-testid="stMetricLabel"] p {{color: {t.TEXT}}}
+[data-testid="stCaptionContainer"] {{color: {t.MUTED}}}
+</style>""", unsafe_allow_html=True)
 
 
 @st.cache_data(show_spinner="Estimating price elasticity from the shop data…")
@@ -110,7 +123,7 @@ with tab_categories:
     bars = alt.Chart(by_category).mark_bar(cornerRadiusEnd=4, height=16).encode(
         x=alt.X("profit_change:Q", title="Gross profit change", axis=alt.Axis(format="+%")),
         y=alt.Y("category:N", sort="-x", title=None),
-        color=alt.condition("datum.profit_change >= 0", alt.value(BLUE), alt.value(RED)),
+        color=alt.condition("datum.profit_change >= 0", alt.value(t.PRIMARY), alt.value(t.ACCENT)),
         tooltip=[alt.Tooltip("category:N", title="Category"),
                  alt.Tooltip("profit_change:Q", title="Profit", format="+.1%"),
                  alt.Tooltip("revenue_change:Q", title="Revenue", format="+.1%"),
@@ -133,11 +146,11 @@ with tab_elasticity:
     e = table.assign(low=table["elasticity"] - 1.645 * table["elasticity_se"],
                      high=table["elasticity"] + 1.645 * table["elasticity_se"])
     base = alt.Chart(e).encode(y=alt.Y("category:N", sort=alt.EncodingSortField("true_elasticity"), title=None))
-    chart = (base.mark_rule(color=BLUE, opacity=0.45, strokeWidth=2).encode(
+    chart = (base.mark_rule(color=t.PRIMARY, opacity=0.45, strokeWidth=2).encode(
                  x=alt.X("low:Q", title="Price elasticity"), x2="high:Q")
-             + base.mark_circle(color=BLUE, size=80, opacity=1).encode(
+             + base.mark_circle(color=t.PRIMARY, size=80, opacity=1).encode(
                  x="elasticity:Q", tooltip=[alt.Tooltip("elasticity:Q", format=".2f", title="Estimate"),
                                             alt.Tooltip("true_elasticity:Q", format=".2f", title="Truth")])
-             + base.mark_point(shape="diamond", color=ORANGE, filled=True, size=90).encode(x="true_elasticity:Q"))
+             + base.mark_point(shape="diamond", color=t.ACCENT, filled=True, size=90).encode(x="true_elasticity:Q"))
     st.altair_chart(chart.properties(height=30 * len(e)), width="stretch")
     st.caption("Dot: estimate with a 90% interval. Diamond: the true value.")

@@ -5,259 +5,262 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 [![Release](https://img.shields.io/github/v/release/tlabedzki/Pricing-Engine)](https://github.com/tlabedzki/Pricing-Engine/releases)
 
-Silnik propozycji cen dla fikcyjnego sklepu internetowego: nowa cena każdego produktu z powodem zapisanym zdaniem
-i rachunkiem zysku, sprawdzonym kluczem odpowiedzi.
+A price proposal engine for a fictional online shop: a new price for every product, a one-sentence reason and a profit
+estimate, checked against an answer key.
 
-**Problem.** Sklep ma dziesiątki tysięcy produktów i ceny ustawione raz, „z marżą”. Nie wie, gdzie cena jest za
-niska i oddaje zysk, a gdzie za wysoka i traci klientów na rzecz konkurencji. Obniżka „na wszelki wypadek” zjada
-marżę, a podwyżka bez rachunku może zjeść sprzedaż.
+**Problem.** A shop sells tens of thousands of products, and most prices were set once with a markup. It does not know
+where a price is too low and gives away profit, or too high and sends customers to competitors. A cut "just in case"
+eats the margin, and a rise without the numbers can eat the sales.
 
-**Podejście.** Z historii cen i sprzedaży projekt szacuje, jak mocno popyt reaguje na cenę w każdej kategorii
-(elastyczność ceny). Potem w granicach reguł (minimalna marża, próg względem konkurencji, maksymalny krok) wybiera cenę
-o najwyższym oczekiwanym zysku. Dane mają klucz odpowiedzi, więc wynik da się sprawdzić.
+**Approach.** From price history and sales, the project estimates how strongly demand reacts to price in each category
+(price elasticity). Then, within the rules (a minimum margin, a limit over the competitors, a largest step), it picks
+the price with the highest expected profit. The data come with an answer key, so the result can be checked.
 
 <!-- generated:result -->
-**Wynik.** Silnik sprawdza ceny 42 748 produktów i zmienia 34 190 z nich; w scenariuszu bazowym roczny zysk brutto
-rośnie o +2,9% przy −0,6% obrotu. Przeliczenie tych samych cen z prawdziwą elastycznością daje +3,0%, a szacunek
-elastyczności trafia w prawdę w 12 z 15 kategorii.
+**Result.** The engine checks the prices of 42,748 products and changes 34,190; in the base scenario yearly gross profit
+grows by +2.9% while net revenue changes by −0.6%. The same prices judged with the true elasticity give +3.0%, and the
+elasticity estimate hits the truth in 12 of 15 categories.
 <!-- /generated:result -->
 
 <!-- generated:hero -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">
-  <img alt="Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok z 10% na 15%; roczny zysk brutto rośnie z 8,09 mln zł (+2,9%) do 8,40 mln zł (+6,9%), a tabela propozycji się odświeża" src="docs/img/app-demo.svg">
+  <img alt="The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%; yearly gross profit moves from PLN 8.09M (+2.9%) to PLN 8.40M (+6.9%) and the proposals table updates" src="docs/img/app-demo.svg">
 </picture>
 <!-- /generated:hero -->
 
 **Stack:** Python · pandas · DuckDB · SQL · SciPy · matplotlib · Streamlit · pytest
 
 <!-- generated:summary -->
-- **Trafione:** zysk przewidziany z danych (+2,9%) różni się od zysku przy prawdziwej elastyczności (+3,0%) o 0,1 pkt
-  proc.; rabaty i zmiany cen razem dają średni błąd elastyczności 0,12.
-- **Chybione:** w 3 kategoriach prawda leży poza przedziałem szacunku: Zdrowie (0,47 zamiast 0,60), Książki i media
-  (0,85 zamiast 1,00), Elektronika (1,83 zamiast 1,60); 22% produktów zostaje ponad progiem konkurencji, bo jeden krok
-  to za mało albo nie pozwala na to minimalna marża.
+- **What worked:** the profit predicted from the data (+2.9%) is 0.1 points from the profit with the true elasticity
+  (+3.0%); discounts and list-price changes together give a mean elasticity error of 0.12.
+- **What missed:** in 3 categories the truth lies outside the estimate's interval: Health (0.47 vs 0.60), Books & Media
+  (0.85 vs 1.00), Electronics (1.83 vs 1.60); 22% of products stay above the competitor limit, because one step is not
+  enough or the minimum margin does not allow it.
 <!-- /generated:summary -->
 
-## 1. Sklep Lumo i pytanie o ceny
+## 1. The situation: Lumo and its prices
 
-Lumo to fikcyjny polski sklep internetowy z 15 kategoriami, od odzieży po meble. Ma dwa lata zamówień, historię
-cen katalogowych i ceny pięciu fikcyjnych konkurentów. Kierownik kategorii chce wiedzieć, które ceny zmienić,
-o ile i co z tego wyniknie.
+Lumo is a fictional Polish online shop with 15 categories, from clothing to furniture. It has two years of orders, a
+history of list prices and the prices of five fictional competitors. The category manager wants to know which prices
+to change, by how much and what happens next.
 
-| Pytanie | Jak odpowiada analiza | Gdzie leży prawdziwa odpowiedź |
+| Question | Method and tables | Answer to check against |
 |---|---|---|
-| Jak mocno popyt reaguje na cenę w każdej kategorii? | Elastyczność ze zmian cen i rabatów na `price_history` i `order_data` (rozdział 3) | `category_price_elasticity` w ustawieniach generatora |
-| Gdzie nasza cena odstaje od konkurencji? | Indeks ceny z `competitor_prices` (rozdział 4) | `true_market_price_gross`, `true_price_level` |
-| Jaką cenę ustawić każdemu produktowi? | Silnik reguł z rachunkiem zysku (rozdział 4) | zysk tych samych cen przy prawdziwej elastyczności (rozdział 5) |
-| Ile zarobimy, a ile stracimy obrotu? | Symulacja roku w trzech scenariuszach (rozdział 5) | jak wyżej |
-| Na ile można ufać wynikowi? | Przedział z losowania elastyczności (rozdział 5) | porównanie przedziału z prawdą (rozdział 7) |
+| How strongly does demand react to price in each category? | Elasticity from list-price changes and discounts on `price_history` and `order_data` (chapter 3) | `category_price_elasticity` in the generator settings |
+| Where is our price out of line with the competitors? | Price index from `competitor_prices` (chapter 4) | `true_market_price_gross`, `true_price_level` |
+| Which price should each product get? | Rule engine with a profit calculation (chapter 4) | profit of the same prices with the true elasticity (chapter 5) |
+| How much profit do we gain, and how much revenue do we lose? | A year simulated in three scenarios (chapter 5) | as above |
+| How far can we trust the result? | Interval from drawing the elasticity (chapter 5) | the interval against the truth (chapter 7) |
 
-## 2. Skąd wiadomo, co jest prawdą
+## 2. How we know the truth
 
-Dane pochodzą z [Data-Generatora](https://github.com/tlabedzki/Data-Generator) v1.6.0 (ziarno 42), który sam
-ustawia, jak klienci reagują na cenę. Te ustawienia to klucz odpowiedzi:
+The data come from [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.6.0 (seed 42), which sets how
+customers react to price. Those settings are the answer key:
 
-- `category_price_elasticity`: elastyczność ceny w kategorii, czyli o ile procent spada sprzedaż po podwyżce
-  o 1% (1,8 w odzieży, 0,6 w zdrowiu, 1,2 tam, gdzie nie ustawiono inaczej);
-- `true_market_price_gross`: cena rynkowa produktu, od której liczą swoje ceny konkurenci;
-- `true_price_level`: poziom cen konkurenta względem rynku (tańszy dyskont 0,92, sklep premium 1,08).
+- `category_price_elasticity`: price elasticity in a category, how many percent sales fall after a 1% price rise (1.8
+  in clothing, 0.6 in health, 1.2 wherever no other value is set);
+- `true_market_price_gross`: the market price of a product, from which the competitors set theirs;
+- `true_price_level`: a competitor's price level against the market (the discounter 0.92, the premium shop 1.08).
 
-Silnik ich nie czyta. Szacuje elastyczność z tego, co widzi prawdziwy sklep: zamówień, historii cen i cen
-konkurencji. Klucz otwiera dopiero ocena. Porównuje szacunek z prawdą i przelicza zysk tych samych propozycji
-z prawdziwą elastycznością. Prawdziwy sklep takiego sprawdzenia nie ma, bo nie zna swojej elastyczności.
+The engine never reads them. It estimates the elasticity from what a real shop sees: orders, price history and
+competitor prices. Only the grading opens the key: it compares the estimate with the truth and recalculates the
+profit of the same proposals with the true elasticity. A real shop cannot run this check, because it does not know its
+elasticity.
 
-W generatorze ceny konkurencji nie wpływają na popyt. Próg względem konkurencji jest więc regułą biznesową, a nie
-wynikiem z danych (więcej w rozdziale 8).
+In the generator, competitor prices do not affect demand. The competitor limit is therefore a business rule, not a
+result from the data (more in chapter 8).
 
-## 3. Jak mocno popyt reaguje na cenę?
+## 3. How strongly does demand react to price?
 
-**Pytanie.** O ile spadnie sprzedaż w kategorii, gdy cena wzrośnie o 1%?
+**Question.** How much do a category's sales fall when the price goes up by 1%?
 
-**Co robi analiza.** Elastyczność niesie w danych dwa sygnały. Pierwszy to zmiany cen katalogowych: po podwyżce produkt
-dostaje mniejszą część zamówień kategorii. Model porównuje okresy cen tego samego produktu (warunkowy model Poissona dla
-liczby zamówień), więc popularność produktu nie zmienia wyniku. Każdy okres liczy się według ruchu w kategorii w jego
-dniach (zapytanie SQL w DuckDB). Drugi sygnał to rabaty: linia zamówienia z rabatem ma więcej sztuk. Oba szacunki łączy
-średnia ważona ich dokładnością, a kategorie z małą sprzedażą są przyciągane do średniej wszystkich kategorii
-(empiryczny Bayes).
+**What we did.** Two signals in the data carry the elasticity. The first is list-price changes: after a rise, a
+product gets a smaller share of its category's orders. The model compares price periods of the same product (a
+conditional Poisson model for the number of orders), so the product's popularity does not change the result. Each
+period counts by the category's traffic on its days (an SQL query in DuckDB). The second signal is discounts: a
+discounted order line has more units. The two estimates are averaged by their precision, and categories with few
+sales are pulled towards the average of all categories (empirical Bayes).
 
-**Jak to sprawdzamy.** Każdy szacunek ma 90% przedział (zakres, w którym prawda powinna leżeć w 9 przypadkach
-na 10). Trafienie to prawda w przedziale.
+**How we check it.** Every estimate has a 90% interval (the range that should hold the truth 9 times out of 10). A
+hit is the truth inside the interval.
 
-**Wynik.**
+**Result.**
 
 <!-- generated:elasticity -->
-Sam sygnał ze zmian cen katalogowych myli się średnio o 0,45, sam sygnał z rabatów o 0,13, a połączenie z przyciąganiem
-do średniej o 0,12. Prawdziwa wartość leży w 90% przedziale w 12 z 15 kategorii.
+List-price changes alone miss by 0.45 on average, discounts alone by 0.13, and both combined and pulled towards the
+average by 0.12. The true value lies in the 90% interval in 12 of 15 categories.
 
-![Szacunek elastyczności trafia w prawdę w 12 z 15 kategorii](docs/img/elasticity-vs-truth.png)
+![The elasticity estimate hits the truth in 12 of 15 categories](docs/img/elasticity-vs-truth.png)
 
-Na czerwono kategorie, w których prawda wypada poza przedziałem: Zdrowie (0,47 zamiast 0,60), Książki i media (0,85
-zamiast 1,00), Elektronika (1,83 zamiast 1,60).
+In red, the categories whose truth falls outside the interval: Health (0.47 vs 0.60), Books & Media (0.85 vs 1.00),
+Electronics (1.83 vs 1.60).
 <!-- /generated:elasticity -->
 
-**Co to znaczy dla sklepu.** Sama historia cen to za mało, bo ceny zmieniają się rzadko, a większość produktów
-sprzedaje się kilka razy w roku. Rabaty niosą znacznie mocniejszy sygnał, więc silnik opiera się głównie na nich.
+**What it means for the shop.** Price history alone is not enough: prices change rarely, and most products sell a few
+times a year. Discounts carry a much stronger signal, so the engine leans on them.
 
-## 4. Jaką cenę zaproponować każdemu produktowi?
+## 4. Which price should each product get?
 
-**Pytanie.** Którą cenę ustawić, żeby zarobić więcej i nie odjechać od konkurencji?
+**Question.** Which price earns more without drifting away from the competitors?
 
-**Co robi analiza.** Pozycję produktu na rynku mierzy indeks ceny: nasza cena podzielona przez medianę cen konkurencji
-(1,05 to 5% drożej). Kilkudniową promocję konkurenta silnik liczy po jego cenie sprzed promocji. Dla każdego produktu w
-sprzedaży silnik sprawdza ceny kończące się na 9 w zakresie ±30% od dzisiejszej. Odrzuca te, które łamią reguły: marża
-netto po średnim rabacie co najmniej 15%, najwyżej 5% nad medianą cen konkurencji i najwyżej 10% zmiany naraz. Z
-pozostałych wybiera cenę o najwyższym oczekiwanym zysku brutto. Popyt przy nowej cenie liczy z elastyczności kategorii.
-Do propozycji dopisuje regułę, która zatrzymała cenę, i powód zdaniem, np. „Raise 9.6%, as far as the 10% step limit
-allows: 13% below the competitor median, demand in Electronics reacts strongly to price (elasticity 1.8)”.
+**What we did.** A price index measures a product's position in the market: our price divided by the median competitor
+price (1.05 means 5% dearer). A competitor's promotion of a few days counts at its price before the promotion. For
+every product on sale, the engine tries prices ending in 9 within ±30% of today's. It drops those that break the
+rules: a net margin of at least 15% after the average discount, at most 5% over the median competitor price and at most
+a 10% change at once. From the rest it picks the price with the highest expected gross profit, with demand at the new
+price from the category elasticity. Each proposal records the rule that stopped the price and a reason, for example
+"Raise 9.6%, as far as the 10% step limit allows: 13% below the competitor median, demand in Electronics reacts
+strongly to price (elasticity 1.8)".
 
-**Jak to sprawdzamy.** Testy sprawdzają, że żadna propozycja nie łamie reguł. Wyjątek to konflikt: gdy minimalna
-marża wymaga ceny ponad progiem konkurencji, wygrywa marża, a powód to mówi.
+**How we check it.** Tests make sure that no proposal breaks the rules. The one exception is a conflict: when the
+minimum margin needs a price above the competitor limit, the margin wins, and the reason says so.
 
-**Wynik.**
+**Result.**
 
 <!-- generated:proposals -->
-Na 42 748 produktów w sprzedaży silnik podnosi 20 475 cen, obniża 13 715 i zostawia 8 558. W progu +5% nad medianą
-konkurencji mieści się dziś 62% produktów z ofertą konkurencji, po zmianach 78%.
+Of 42,748 products on sale the engine raises 20,475 prices, lowers 13,715 and keeps 8,558. Within +5% of the competitor
+median today: 62% of products with a competitor offer, after the changes 78%.
 
-![Po zmianach 78% produktów mieści się w progu +5% nad konkurencją](docs/img/price-index.png)
+![After the changes 78% of products sit within +5% of the competitors](docs/img/price-index.png)
 
-O 40 042 propozycjach (94%) decyduje próg konkurencji albo maksymalny krok, o 2 477 konflikt marży z rynkiem, a tylko o
-229 sam rachunek zysku.
+The competitor limit or the largest step decides 40,042 proposals (94%), a margin-versus-market conflict 2,477, and the
+profit calculation alone only 229.
 
-![Cenę najczęściej zatrzymuje próg konkurencji albo maksymalny krok](docs/img/decision-rules.png)
+![The competitor limit or the largest step stops most prices](docs/img/decision-rules.png)
 <!-- /generated:proposals -->
 
-**Co to znaczy dla sklepu.** Przy elastyczności Lumo (0,5–1,8) cena o najwyższym zysku leży zwykle wyżej niż
-dzisiejsza, więc o tym, jak daleko pójść, decydują reguły. Część produktów jest tak daleko od rynku, że dojście
-do progu wymaga kilku rund zmian.
+**What it means for the shop.** With Lumo's elasticities (0.5 to 1.8), the most profitable price is usually above
+today's, so the rules decide how far to go. Some products sit so far from the market that reaching the limit takes
+several rounds of changes.
 
-## 5. Ile to da w ciągu roku?
+## 5. What does it do to a year of sales?
 
-**Pytanie.** O ile zmieni się roczny zysk brutto, obrót i liczba sprzedanych sztuk?
+**Question.** How do yearly gross profit, revenue and units sold change?
 
-**Co robi analiza.** Punktem wyjścia jest sprzedaż produktu z ostatnich 12 miesięcy. Produkt, który sprzedał się
-tylko kilka razy, dostaje do tego średnią swojej kategorii. Silnik przelicza sprzedaż na nowe ceny w trzech
-scenariuszach reguł. Ostrożny zakłada popyt bardziej wrażliwy na cenę: elastyczność większą o 1,64 błędu
-standardowego (miary niepewności szacunku), czyli górną granicę 90% przedziału. Na koniec silnik losuje
-elastyczność z jej przedziałów 1000 razy, żeby pokazać, jak niepewny jest wynik.
+**What we did.** The starting point is each product's sales in the last 12 months. A product that sold only a few times
+gets its category's average mixed in. The engine recalculates sales at the new prices in three scenarios of rules. The
+cautious one assumes demand more sensitive to price: the elasticity raised by 1.64 standard errors (a measure of the
+estimate's uncertainty), the upper end of the 90% interval. Finally, the engine draws the elasticity from its
+intervals 1,000 times to show how uncertain the result is.
 
-**Jak to sprawdzamy.** Te same propozycje przeliczamy z prawdziwą elastycznością z Data-Generatora i porównujemy
-zysk.
+**How we check it.** We recalculate the same proposals with the true elasticity from Data-Generator and compare the
+profit.
 
-**Wynik.**
+**Result.**
 
 <!-- generated:scenarios -->
-| Scenariusz | Reguły | Zysk brutto | Obrót netto | Sztuki | Podwyżki / obniżki |
+| Scenario | Rules | Gross profit | Net revenue | Units | Raised / lowered |
 |---|---|---|---|---|---|
-| ostrożny | do mediany konkurencji, krok 5%, popyt czulszy o 1,64 błędu | +0,6% | +0,1% | +0,6% | 13 179 / 15 713 |
-| bazowy | +5% nad medianą, krok 10% | +2,9% | −0,6% | −0,2% | 20 475 / 13 715 |
-| odważny | +10% nad medianą, krok 15% | +6,9% | −2,0% | −3,2% | 26 517 / 10 047 |
+| cautious | up to the competitor median, 5% steps, demand 1.64 SE more sensitive | +0.6% | +0.1% | +0.6% | 13,179 / 15,713 |
+| base | +5% over the median, 10% steps | +2.9% | −0.6% | −0.2% | 20,475 / 13,715 |
+| bold | +10% over the median, 15% steps | +6.9% | −2.0% | −3.2% | 26,517 / 10,047 |
 
-![Scenariusz bazowy: +2,9% zysku brutto przy −0,6% obrotu](docs/img/scenarios.png)
+![Base scenario: +2.9% gross profit at −0.6% revenue](docs/img/scenarios.png)
 
-Przy losowaniu elastyczności z jej przedziałów zmiana zysku w scenariuszu bazowym mieści się w 90% przypadków między
-+2,8% a +3,0%. Najwięcej zyskuje Elektronika, traci Książki i media.
+Drawing the elasticity from its intervals, the base profit change stays between +2.8% and +3.0% in 90% of draws.
+Electronics gains the most; Books & Media loses.
 
-![Najwięcej zyskuje Elektronika](docs/img/categories.png)
+![Electronics gains the most](docs/img/categories.png)
 <!-- /generated:scenarios -->
 
-**Co to znaczy dla sklepu.** Scenariusz bazowy podnosi zysk prawie bez utraty sprzedaży. Odważny zarabia więcej, ale
-kosztem obrotu i ceny wyraźnie wyższej od konkurencji. Najwięcej zyskują kategorie z niską marżą, jak elektronika: tam
-każda złotówka podwyżki to duża część marży. Tracą kategorie, w których obniżki do progu konkurencji kosztują więcej,
-niż daje dodatkowa sprzedaż.
+**What it means for the shop.** The base scenario raises profit with almost no loss of sales. The bold one earns more,
+but at the cost of revenue and prices clearly above the competitors. Low-margin categories such as electronics gain
+the most: there, every zloty of a rise is a large part of the margin. Categories lose where cuts down to the
+competitor limit cost more than the extra sales bring.
 
-## 6. Aplikacja: reguły na suwakach
+## 6. The app: rules on sliders
 
-Aplikacja Streamlit pokazuje silnik w działaniu (animacja na górze strony). Z lewej są suwaki reguł: minimalna marża,
-próg nad medianą konkurencji, maksymalny krok i ostrożność, czyli o ile błędów standardowych zwiększyć elastyczność (jak
-w scenariuszu ostrożnym). Po każdej zmianie przelicza się roczny zysk, obrót, sztuki i zysk przy prawdziwej
-elastyczności. Zakładka „Proposals” to lista propozycji z powodem i pobieraniem CSV, „Categories” to zmiana zysku w
-kategoriach i reguły, które zdecydowały, a „Elasticity” to szacunek obok prawdy.
+The Streamlit app shows the engine at work (the animation at the top of the page). On the left are the rule sliders:
+minimum margin, the limit over the competitor median, the largest step and caution, the number of standard errors
+added to the elasticity (as in the cautious scenario). Every change recalculates yearly profit, revenue, units and the
+profit with the true elasticity. The "Proposals" tab lists the proposals with their reasons and a CSV download,
+"Categories" shows the profit change per category and the rules that decided, and "Elasticity" puts the estimate next
+to the truth.
 
-![Aplikacja: reguły cenowe na suwakach z lewej, roczny zysk, obrót i sztuki po zmianie oraz lista propozycji z powodem zmiany ceny](docs/img/app.png)
+![The app: pricing rules on sliders on the left, yearly profit, revenue and units after the change, and the list of proposals with the reason for each price](docs/img/app.png)
 
-## 7. Analiza kontra prawda
+## 7. Analysis against the truth
 
 <!-- generated:verdicts -->
-Elastyczność trafia w prawdę w 12 z 15 kategorii, a zysk scenariusza bazowego przewidziany z danych (+2,9%) zgadza się z
-zyskiem przy prawdziwej elastyczności (+3,0%).
+The elasticity hits the truth in 12 of 15 categories, and the base profit predicted from the data (+2.9%) matches the
+profit with the true elasticity (+3.0%).
 
-| Pytanie | Odpowiedź z danych | Prawda | Ocena |
+| Question | Answer from the data | Truth | Verdict |
 |---|---|---|---|
-| Elastyczność: Zdrowie | 0,47 [0,36; 0,59] | 0,60 | chybione |
-| Elastyczność: Książki i media | 0,85 [0,74; 0,96] | 1,00 | chybione |
-| Elastyczność: Elektronika | 1,83 [1,63; 2,03] | 1,60 | chybione |
-| Elastyczność: Odzież | 1,81 [1,76; 1,87] | 1,80 | trafione |
-| Elastyczność: Uroda | 1,20 [1,07; 1,33] | 1,20 | trafione |
-| Pozostałe 10 kategorii | w przedziale | – | trafione |
-| Zmiana zysku, scenariusz bazowy | +2,9% [+2,8%; +3,0%] | +3,0% | chybione, poza przedziałem |
-| Zmiana obrotu, scenariusz bazowy | −0,6% | −0,4% | różnica 0,2 pkt proc. |
+| Elasticity: Health | 0.47 [0.36, 0.59] | 0.60 | miss |
+| Elasticity: Books & Media | 0.85 [0.74, 0.96] | 1.00 | miss |
+| Elasticity: Electronics | 1.83 [1.63, 2.03] | 1.60 | miss |
+| Elasticity: Clothing | 1.81 [1.76, 1.87] | 1.80 | hit |
+| Elasticity: Beauty | 1.20 [1.07, 1.33] | 1.20 | hit |
+| Other 10 categories | inside the interval | see the chart in chapter 3 | hit |
+| Profit change, base scenario | +2.9% [+2.8%, +3.0%] | +3.0% | miss, outside the interval |
+| Revenue change, base scenario | −0.6% | −0.4% | 0.2 points apart |
 <!-- /generated:verdicts -->
 
-**Gdzie metody się pomyliły i czego to uczy.**
+**Where it went wrong and what it teaches.**
 
-- **Zdrowie i Książki: sygnał ze zmian cen katalogowych zaniża elastyczność.** Sam ten sygnał daje w Zdrowiu
-  wynik bliski zera. Model upraszcza mechanizm generatora: ruch w kategorii waży popularnością produktów, a generator
-  dobiera produkty jeszcze według marki i poziomu cen klienta. Lekcja: jeden sygnał może być przesunięty, dobrze mieć
-  dwa niezależne.
-- **Elektronika: szacunek za wysoki.** Kategoria ma mało zamówień na produkt, a przyciąganie do średniej nie
-  wystarczyło. Silnik jest przez to ostrożniejszy z podwyżkami elektroniki, niż musiałby być.
-- **Przedział zysku za wąski.** Losowanie elastyczności obejmuje tylko przypadkowy błąd szacunku, a nie jego
-  przesunięcie w trzech kategoriach, więc prawda wypada tuż za przedziałem. Lekcja: przedział z modelu to dolna
-  granica niepewności, nie pełna.
+- **Health and Books: the list-price signal underestimates the elasticity.** On its own, that signal puts Health
+  close to zero. The model simplifies the generator: it weighs category traffic by product popularity, while the
+  generator also picks products by brand and by the customer's price level. Lesson: one signal can be biased, so it
+  helps to have two independent ones.
+- **Electronics: the estimate is too high.** The category has few orders per product, and pulling towards the average
+  was not enough. The engine is therefore more careful with electronics rises than it needs to be.
+- **The profit interval is too narrow.** Drawing the elasticity covers only the random error of the estimate, not its
+  bias in three categories, so the truth falls just outside the interval. Lesson: an interval from the model is a
+  lower bound on the uncertainty, not all of it.
 
-Pomyłki pokazane wprost to atut projektu. Ocena może powiedzieć „chybione”, więc „trafione” coś znaczy. W
-prawdziwym sklepie tych pomyłek nikt by nie zobaczył, bo nie ma klucza odpowiedzi.
+The misses stay in the table on purpose: a grading that can say "miss" makes each "hit" worth something. In a real shop
+nobody would see these misses, because there is no answer key.
 
-## 8. Wnioski i ograniczenia
+## 8. Takeaways and limitations
 
-**Rekomendacje.**
+**Recommendations.**
 
-1. Wdrożyć scenariusz bazowy: zysk rośnie przy prawie tym samym obrocie, a prawdziwa elastyczność potwierdza
-   rachunek.
-2. Zmieniać ceny w rundach. Po jednej rundzie część produktów zostaje ponad progiem konkurencji, bo dojście do
-   niego wymaga kilku kroków.
-3. Elastyczność szacować z rabatów i zmian cen razem. Sam sygnał ze zmian cen katalogowych myli się kilka razy
-   bardziej.
-4. Przy produktach, w których minimalna marża wymaga ceny ponad rynkiem, sprawdzić koszt zakupu albo ofertę.
-   Silnik nie dojdzie tam do progu konkurencji.
+1. Roll out the base scenario: profit goes up at almost the same revenue, and the true elasticity confirms the
+   calculation.
+2. Change prices in rounds. After one round some products stay above the competitor limit, because reaching it takes
+   several steps.
+3. Estimate the elasticity from discounts and list-price changes together. The list-price signal alone misses several
+   times more.
+4. Where the minimum margin needs a price above the market, check the purchase cost or the offer. The engine cannot
+   reach the competitor limit there.
 
-**Ograniczenia.**
+**Limitations.**
 
-- Dane są syntetyczne i mają jedną elastyczność na kategorię, stałą w czasie. W prawdziwym sklepie różni się ona
-  między produktami i sezonami, a rabat może działać inaczej niż zmiana ceny katalogowej.
-- Ceny konkurencji nie wpływają na popyt w generatorze, więc model nie widzi kosztu ceny wyższej od rynku. Próg
-  konkurencji chroni przed tym regułą. W prawdziwym sklepie warto go zastąpić szacunkiem z danych o udziale
-  w rynku.
-- Jedno ziarno i jeden rok prognozy. Wynik nie uwzględnia reakcji konkurencji na nasze zmiany ani zwrotów.
-- Bez klucza odpowiedzi elastyczność sprawdza się testem A/B cen na części produktów.
+- The data are synthetic, with one elasticity per category that does not change over time. In a real shop it differs
+  between products and seasons, and a discount may work differently from a list-price change.
+- Competitor prices do not affect demand in the generator, so the model does not see the cost of a price above the
+  market. The competitor limit guards against it as a rule. In a real shop it is worth replacing with an estimate from
+  market share data.
+- One seed and a one-year projection. The result leaves out competitors' reactions to our changes and returns.
+- Without an answer key, an A/B price test on part of the products checks the elasticity.
 
-## Szybki start
+## Quickstart
 
-Potrzebujesz Gita i Pythona 3.11. Sklonuj repozytorium:
+You need Git and Python 3.11. Clone the repository:
 
 ```bash
 git clone https://github.com/tlabedzki/Pricing-Engine.git
 cd Pricing-Engine
 ```
 
-<details><summary>Utwórz i włącz środowisko wirtualne z Pythonem 3.11 (Windows, macOS i Linux)</summary>
+<details><summary>Create and activate a virtual environment with Python 3.11 (Windows, macOS and Linux)</summary>
 
-Podanie wersji wybiera Pythona 3.11, nawet jeśli domyślny jest inny.
+Naming the version picks Python 3.11 even if another one is the default.
 
-| Krok | Windows (PowerShell) | macOS i Linux |
+| Step | Windows (PowerShell) | macOS and Linux |
 |---|---|---|
-| Utwórz | `py -3.11 -m venv .venv` | `python3.11 -m venv .venv` |
-| Włącz | `.venv\Scripts\Activate.ps1` | `source .venv/bin/activate` |
-| Sprawdź | `python --version` pokazuje `Python 3.11.x` | `python --version` pokazuje `Python 3.11.x` |
+| Create | `py -3.11 -m venv .venv` | `python3.11 -m venv .venv` |
+| Activate | `.venv\Scripts\Activate.ps1` | `source .venv/bin/activate` |
+| Check | `python --version` prints `Python 3.11.x` | `python --version` prints `Python 3.11.x` |
 
-Jeśli PowerShell mówi, że uruchamianie skryptów jest wyłączone, uruchom raz
-`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` i włącz środowisko ponownie.
+If PowerShell says that running scripts is disabled, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once
+and activate again.
 
 </details>
 
-Potem zainstaluj pakiety, pobierz dane i uruchom silnik:
+Then install the packages, get the data and run the engine:
 
 ```bash
 pip install -r requirements.txt
@@ -265,25 +268,25 @@ python scripts/get_data.py
 python main.py
 ```
 
-`get_data.py` klonuje Data-Generator v1.6.0 i generuje dane sklepu (ok. 15 s). `main.py` drukuje elastyczność,
-przykładowe propozycje i scenariusze, a pliki CSV i `summary.json` zapisuje w `output/` (ok. 15 s).
+`get_data.py` clones Data-Generator v1.6.0 and generates the shop data (about 15 s). `main.py` prints the elasticity,
+sample proposals and the scenarios, and saves CSV files and `summary.json` to `output/` (about 15 s).
 
-### Wiersz poleceń
+### Command line
 
-`python main.py propose --min-margin 0.2 --max-above-market 0 --max-step 0.05` liczy propozycje z własnymi
-regułami. `python main.py elasticity` pokazuje sam szacunek elastyczności obok prawdy.
+`python main.py propose --min-margin 0.2 --max-above-market 0 --max-step 0.05` computes proposals with your own rules.
+`python main.py elasticity` shows the elasticity estimate next to the truth.
 
-### Aplikacja
+### App
 
-`streamlit run app/streamlit_app.py` otwiera aplikację pod http://127.0.0.1:8501 (tylko na tym komputerze).
-Pierwsze wczytanie trwa kilka sekund, Ctrl+C w terminalu ją zatrzymuje.
+`streamlit run app/streamlit_app.py` opens the app at http://127.0.0.1:8501 (this computer only). The first load takes
+a few seconds; Ctrl+C in the terminal stops it.
 
-## Dane
+## Data
 
-Dane są syntetyczne: [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.6.0 (licencja MIT), ziarno
-42, generowane skryptem `scripts/get_data.py` do `data/raw/` (poza gitem). Silnik czyta cztery tabele z 15.
-Marki produktów są prawdziwe, ale produkty, ceny, marże i sprzedaż są fikcyjne i nic nie mówią o tych markach.
-Sklepy konkurencji (Frugalia, Aequo, Maison Orvelle, Mercatoria, Fulmina) są fikcyjne.
+The data are synthetic: [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.6.0 (MIT license), seed 42,
+generated by `scripts/get_data.py` into `data/raw/` (outside git). The engine reads four of its 15 tables. Product
+brands are real, but the products, prices, margins and sales are fictional and say nothing about those brands. The
+competitor shops (Frugalia, Aequo, Maison Orvelle, Mercatoria, Fulmina) are fictional.
 
 ```mermaid
 erDiagram
@@ -310,13 +313,13 @@ erDiagram
     }
 ```
 
-Opis kolumn:
-[docs/columns.md w Data-Generatorze](https://github.com/tlabedzki/Data-Generator/blob/v1.6.0/docs/columns.md).
-Prawdziwa elastyczność trafia do `data/raw/truth.json` prosto z ustawień generatora.
+Column descriptions:
+[docs/columns.md in Data-Generator](https://github.com/tlabedzki/Data-Generator/blob/v1.6.0/docs/columns.md).
+The true elasticity goes to `data/raw/truth.json` straight from the generator settings.
 
-## Struktura projektu
+## Project structure
 
-<details><summary>Pokaż drzewo</summary>
+<details><summary>Show the tree</summary>
 
 ```
 main.py                         command line: elasticity, proposals, scenarios
@@ -339,19 +342,19 @@ tests/                          pytest
 
 </details>
 
-## Testy
+## Tests
 
 ```bash
 pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-50 testów (ok. 20 s) sprawdza estymatory na danych ze znaną elastycznością, reguły silnika na losowych produktach,
-symulację, tabelę konkurencji, wiersz poleceń i aplikację. Test aplikacji wymaga danych z `get_data.py`; bez nich
-jest pomijany, tak jak w CI.
+50 tests (about 20 s) check the estimators on data with a known elasticity, the engine's rules on random products, the
+simulation, the competitor table, the command line and the app. The app test needs the data from `get_data.py`;
+without them it is skipped, as in CI.
 
-## Licencja
+## License
 
-MIT, zob. [LICENSE](LICENSE). [Changelog](CHANGELOG.md).
+MIT, see [LICENSE](LICENSE). [Changelog](CHANGELOG.md).
 
-Ostatnia aktualizacja README: 2026-11-24
+README last updated: 2026-11-24

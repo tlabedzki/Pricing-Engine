@@ -279,7 +279,7 @@ def chart_scenarios(frame: pd.DataFrame, true_profit: float, text: dict, fmt: Fo
 
 def chart_categories(by_category: pd.DataFrame, text: dict, fmt: Format) -> dict:
     t = by_category.sort_values("profit_change").reset_index(drop=True)
-    fig, ax = new_figure(3.9, 0.87)
+    fig, ax = new_figure(3.6, 0.86)
     y = np.arange(len(t))
     colors = np.where(t["profit_change"] >= 0, BLUE, RED)
     ax.barh(y, t["profit_change"], color=colors, height=0.62, edgecolor="white", linewidth=1)

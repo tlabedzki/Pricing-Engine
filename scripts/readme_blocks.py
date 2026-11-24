@@ -135,7 +135,7 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
                 f"[{n(r.elasticity - 1.645 * r.elasticity_se, 2)}; {n(r.elasticity + 1.645 * r.elasticity_se, 2)}] | "
                 f"{n(r.true_elasticity, 2)} | {'chybione' if c in misses else 'trafione'} |\n"
                 for c, r in t.loc[shown].iterrows())
-            + f"| Pozostałe {others} kategorii | w przedziale | – | trafione |\n"
+            + f"| Pozostałe {others} kategorii | w przedziale | zob. wykres w rozdziale 3 | trafione |\n"
             f"| Zmiana zysku, scenariusz bazowy | {pct(base['profit_change'])} [{pct(low)}; {pct(high)}] | "
             f"{pct(truth['profit_change'])} | "
             f"{'trafione' if low <= truth['profit_change'] <= high else 'chybione, poza przedziałem'} |\n"
@@ -145,9 +145,9 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
     else:
         out["result"] = (
             f"**Result.** The engine checks the prices of {n(total)} products and changes {n(changed)}; in the base "
-            f"scenario yearly gross profit grows by {pct(base['profit_change'])} at {pct(base['revenue_change'])} "
-            f"revenue. The same prices judged with the true elasticity give {pct(truth['profit_change'])}, "
-            f"and the elasticity estimate hits the "
+            f"scenario yearly gross profit grows by {pct(base['profit_change'])} while net revenue changes by "
+            f"{pct(base['revenue_change'])}. The same prices judged with the true elasticity give "
+            f"{pct(truth['profit_change'])}, and the elasticity estimate hits the "
             f"truth in {e['hits']} of {e['n']} categories.")
         out["summary"] = (
             f"- **What worked:** the profit predicted from the data ({pct(base['profit_change'])}) is "
@@ -204,7 +204,7 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
                 f"[{n(r.elasticity - 1.645 * r.elasticity_se, 2)}, {n(r.elasticity + 1.645 * r.elasticity_se, 2)}] | "
                 f"{n(r.true_elasticity, 2)} | {'miss' if c in misses else 'hit'} |\n"
                 for c, r in t.loc[shown].iterrows())
-            + f"| Other {others} categories | inside the interval | – | hit |\n"
+            + f"| Other {others} categories | inside the interval | see the chart in chapter 3 | hit |\n"
             f"| Profit change, base scenario | {pct(base['profit_change'])} [{pct(low)}, {pct(high)}] | "
             f"{pct(truth['profit_change'])} | "
             f"{'hit' if low <= truth['profit_change'] <= high else 'miss, outside the interval'} |\n"

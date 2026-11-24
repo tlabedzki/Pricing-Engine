@@ -3,6 +3,23 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+Proposed as 1.1.1: only the README and its demo change, the engine and the app stay as in 1.1.0.
+
+### Changed
+
+- The animated demo at the top of the README follows a longer story in a 14.5 s loop: the page scrolls from the top
+  to the rules, the cursor drags the competitor limit from +5% to +10% and the largest step from 10% to 15% (yearly
+  gross profit PLN 8.09M, 8.28M, 8.40M), the page scrolls to the proposals, the table shows only the lowered prices,
+  the Categories tab opens and its two charts grow in, then the page scrolls back to the top. The same story as the
+  project card on the GitHub profile, in the README's light and dark browser frame. With reduced motion the image
+  shows the rules after both drags. The alt text describes the new story.
+- `scripts/make_demo_svg.py` takes full-page screenshots of the app 960 px wide in 13 states (every whole value
+  of both dragged rules, the lowered prices, the Categories tab), checks every headline number against the engine
+  and the layout against the timeline, and builds both files (374 KB each, 127 KB before). New option `--res`
+  (image pixels per SVG pixel, default 1.25).
+
 ## [1.1.0] - 2026-11-24
 
 ### Changed

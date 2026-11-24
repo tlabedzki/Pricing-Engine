@@ -25,7 +25,7 @@ elasticity estimate hits the truth in 12 of 15 categories.
 <!-- generated:hero -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">
-  <img alt="The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%; yearly gross profit moves from PLN 8.09M (+2.9%) to PLN 8.40M (+6.9%), with revenue, units and the profit with the true elasticity" src="docs/img/app-demo.svg">
+  <img alt="The app, animated: the page scrolls to the rules, the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%, and yearly gross profit moves from PLN 8.09M (+2.9%) through PLN 8.28M to PLN 8.40M (+6.9%); then the proposals table shows only the lowered prices and the Categories tab draws the profit change per category and the rule that decides the prices" src="docs/img/app-demo.svg">
 </picture>
 <!-- /generated:hero -->
 

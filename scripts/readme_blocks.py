@@ -57,21 +57,25 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
 
     out: dict[str, str] = {}
     if "demo" in facts:
-        first, last = facts["demo"]["base"], facts["demo"]["bold"]
+        first, middle, last = facts["demo"]["base"], facts["demo"]["above"], facts["demo"]["bold"]
 
         def money(text: str) -> str:
             return f"{n(float(text[:-1]), 2)} mln zł" if pl else f"PLN {text}"
 
         if pl:
-            alt = (f"Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok "
-                   f"z 10% na 15%; roczny zysk brutto rośnie z {money(first['profit'])} "
-                   f"({pct(first['profit_change'])}) do {money(last['profit'])} ({pct(last['profit_change'])}), "
-                   f"a obrót, sprzedane sztuki i zysk przy prawdziwej elastyczności zmieniają się razem z nim")
+            alt = (f"Animacja aplikacji: strona przewija się do reguł, kursor przesuwa próg nad medianą konkurencji "
+                   f"z +5% na +10% i maksymalny krok z 10% na 15%, a roczny zysk brutto rośnie z "
+                   f"{money(first['profit'])} ({pct(first['profit_change'])}) przez {money(middle['profit'])} do "
+                   f"{money(last['profit'])} ({pct(last['profit_change'])}); potem tabela propozycji pokazuje same "
+                   f"obniżki, a zakładka Categories rysuje zmianę zysku w każdej kategorii i regułę, która decyduje "
+                   f"o cenach")
         else:
-            alt = (f"The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the "
-                   f"largest step from 10% to 15%; yearly gross profit moves from {money(first['profit'])} "
-                   f"({pct(first['profit_change'])}) to {money(last['profit'])} ({pct(last['profit_change'])}), "
-                   f"with revenue, units and the profit with the true elasticity")
+            alt = (f"The app, animated: the page scrolls to the rules, the cursor drags the limit over the competitor "
+                   f"median from +5% to +10% and the largest step from 10% to 15%, and yearly gross profit moves from "
+                   f"{money(first['profit'])} ({pct(first['profit_change'])}) through {money(middle['profit'])} to "
+                   f"{money(last['profit'])} ({pct(last['profit_change'])}); then the proposals table shows only the "
+                   f"lowered prices and the Categories tab draws the profit change per category and the rule that "
+                   f"decides the prices")
         out["hero"] = ('<picture>\n'
                        '  <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">\n'
                        f'  <img alt="{alt}" src="docs/img/app-demo.svg">\n'

@@ -112,6 +112,16 @@ def shrink(estimate: np.ndarray, se: np.ndarray):
     DerSimonian-Laird estimator. Returns posterior means and standard deviations.
     """
     estimate, se = np.asarray(estimate, float), np.asarray(se, float)
+    known = np.isfinite(estimate) & np.isfinite(se) & (se > 0)
+    if not known.all():
+        # a category without any signal gets the pooled result of the others
+        posterior, posterior_se = np.full_like(estimate, np.nan), np.full_like(se, np.nan)
+        if known.any():
+            posterior[known], posterior_se[known] = shrink(estimate[known], se[known])
+            weight = 1 / se[known] ** 2
+            posterior[~known] = np.sum(weight * estimate[known]) / weight.sum()
+            posterior_se[~known] = 1 / np.sqrt(weight.sum())
+        return posterior, posterior_se
     weight = 1 / se**2
     mean = np.sum(weight * estimate) / weight.sum()
     q = np.sum(weight * (estimate - mean) ** 2)

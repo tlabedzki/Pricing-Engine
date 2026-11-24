@@ -157,11 +157,14 @@ def propose(table: pd.DataFrame, rules: Rules = Rules()) -> pd.DataFrame:
     lower = candidates < best[:, None] - 0.5
     up = np.where(higher.any(axis=1), higher.argmax(axis=1), candidates.shape[1] - 1)
     down = np.where(lower.any(axis=1), candidates.shape[1] - 1 - lower[:, ::-1].argmax(axis=1), 0)
+    # no allowed price: the margin blocks the market limit only if every price ending in 9 above the floor passes
+    # the cap; otherwise the step (with the price endings) keeps the price from reaching the market
+    lowest_above_floor = np.where(above_floor, candidates, np.inf).min(axis=1)
     binding = np.select(
-        [~feasible & no_floor, ~feasible & (cap < low_step) & (floor < low_step), ~feasible,
+        [~feasible & no_floor, ~feasible & (lowest_above_floor > cap + tolerance), ~feasible,
          (unconstrained > best) & ~under_cap[rows, up], (unconstrained > best) & ~in_step[rows, up],
          (unconstrained < best) & ~above_floor[rows, down], (unconstrained < best) & ~in_step[rows, down]],
-        ["margin_conflict", "step_down", "market_conflict", "market_cap", "step_up", "margin_floor", "step_down"],
+        ["margin_conflict", "market_conflict", "step_down", "market_cap", "step_up", "margin_floor", "step_down"],
         "profit_optimum")
 
     new_profit, new_units = _profit(best, current, units, elasticity, vat, discount, cost)
@@ -207,12 +210,14 @@ def _reason(row, rules: Rules) -> str:
               f"(elasticity {row.elasticity:.1f})")
     margin, limit, step = _pct(rules.min_margin), f"+{_pct(rules.max_above_market)}", _pct(rules.max_step)
     head = f"{'Raise' if row.action == 'raise' else 'Lower'} {_pct(row.change)}"
+    above_limit = row.offers > 0 and row.index_before > 1 + rules.max_above_market + 1e-9
+    over_limit = f", more than the limit of {limit}" if above_limit else ""
     templates = {
         ("keep", "profit_optimum"): f"Keep: the current price already earns the most; {position}, {demand}.",
         ("keep", "market_cap"): f"Keep: {position}; a higher price would pass the limit of {limit}.",
         ("keep", "step_up"): f"Keep: {position}, but the next price ending in 9 is a bigger step than {step}.",
-        ("keep", "step_down"): f"Keep: {position}, more than the limit of {limit}, but the next price ending in 9 "
-                               f"is a bigger step than {step}.",
+        ("keep", "step_down"): f"Keep: {position}{over_limit}, but the next lower price ending in 9 is a bigger "
+                               f"step than {step}.",
         ("keep", "margin_floor"): f"Keep: a lower price would break the minimum margin of {margin}.",
         ("keep", "market_conflict"): f"Keep: {position}, but a lower price would break the minimum margin of "
                                      f"{margin}.",
@@ -220,16 +225,17 @@ def _reason(row, rules: Rules) -> str:
                                      f"in 9 is a bigger step than {step}.",
         ("raise", "profit_optimum"): f"{head}: the price with the highest expected profit; {position}, {demand}.",
         ("raise", "market_cap"): f"{head}: {position}; it stops at the limit of {limit}, {demand}.",
-        ("raise", "step_up"): f"{head}, the largest step allowed ({step}): {position}, {demand}.",
+        ("raise", "step_up"): f"{head}, as far as the {step} step limit allows: {position}, {demand}.",
         ("raise", "market_conflict"): f"{head} to reach the minimum margin of {margin}, although this puts it "
                                       f"{_pct(row.index_after - 1)} {'above' if row.index_after > 1 else 'below'} "
                                       f"the competitor median.",
-        ("raise", "margin_conflict"): f"{head}, the largest step allowed ({step}): the margin is still below the "
+        ("raise", "margin_conflict"): f"{head}, as far as the {step} step limit allows: the margin is still below the "
                                       f"minimum of {margin}.",
         ("raise", "margin_floor"): f"{head} to reach the minimum margin of {margin}; {position}.",
         ("lower", "profit_optimum"): f"{head}: the price with the highest expected profit; {position}, {demand}.",
         ("lower", "market_cap"): f"{head}: {position}, more than the limit of {limit}.",
-        ("lower", "step_down"): f"{head}, the largest step allowed ({step}): {position}.",
+        ("lower", "step_down"): f"{head}, as far as the {step} step limit allows: "
+                                f"{position}{over_limit or ', ' + demand}.",
         ("lower", "market_conflict"): f"{head}: {position}; the minimum margin of {margin} stops it above the "
                                       f"limit of {limit}.",
         ("lower", "margin_floor"): f"{head}: {demand}; the minimum margin of {margin} stops it here.",

@@ -17,9 +17,9 @@ marżę, a podwyżka bez rachunku może zjeść sprzedaż.
 o najwyższym oczekiwanym zysku. Dane mają klucz odpowiedzi, więc wynik da się sprawdzić.
 
 <!-- generated:result -->
-**Wynik.** Silnik proponuje nową cenę dla 42 748 produktów; w scenariuszu bazowym roczny zysk brutto rośnie o +2,6% przy
-−0,5% obrotu. Przeliczenie tych samych cen z prawdziwą elastycznością daje +2,7%, a szacunek elastyczności trafia w
-prawdę w 12 z 15 kategorii.
+**Wynik.** Silnik sprawdza ceny 42 748 produktów i zmienia 34 152 z nich; w scenariuszu bazowym roczny zysk brutto
+rośnie o +2,6% przy −0,5% obrotu. Przeliczenie tych samych cen z prawdziwą elastycznością daje +2,7%, a szacunek
+elastyczności trafia w prawdę w 12 z 15 kategorii.
 <!-- /generated:result -->
 
 ![Aplikacja: reguły cenowe na suwakach z lewej, roczny zysk, obrót i sztuki po zmianie oraz lista propozycji z powodem zmiany ceny](docs/img/app.png)
@@ -102,9 +102,9 @@ sprzedaje się kilka razy w roku. Rabaty niosą znacznie mocniejszy sygnał, wi�
 (1,05 to 5% drożej). Dla każdego produktu w sprzedaży silnik sprawdza ceny kończące się na 9 w zakresie ±30% od
 dzisiejszej. Odrzuca te, które łamią reguły: marża netto po średnim rabacie co najmniej 15%, najwyżej 5% nad medianą cen
 konkurencji i najwyżej 10% zmiany naraz. Z pozostałych wybiera cenę o najwyższym oczekiwanym zysku brutto. Popyt przy
-nowej cenie liczy z elastyczności kategorii. Do propozycji dopisuje regułę, która zatrzymała cenę, i powód zdaniem, np.
-„Raise 9.6%, the largest step allowed (10%): 13% below the competitor median, demand in Electronics reacts strongly to
-price (elasticity 1.8)”.
+nowej cenie liczy z elastyczności kategorii. Do propozycji dopisuje regułę, która zatrzymała cenę, i powód zdaniem,
+np. „Raise 9.6%, as far as the 10% step limit allows: 13% below the competitor median, demand in Electronics reacts
+strongly to price (elasticity 1.8)”.
 
 **Jak to sprawdzamy.** Testy sprawdzają, że żadna propozycja nie łamie reguł. Wyjątek to konflikt: gdy minimalna
 marża wymaga ceny ponad progiem konkurencji, wygrywa marża, a powód to mówi.
@@ -117,7 +117,7 @@ konkurencji mieści się dziś 60% produktów z ofertą konkurencji, po zmianach
 
 ![Po zmianach 76% produktów mieści się w progu +5% nad konkurencją](docs/img/price-index.png)
 
-O 37 942 propozycjach (89%) decyduje próg konkurencji albo maksymalny krok, o 4 557 konflikt marży z rynkiem, a tylko o
+O 39 695 propozycjach (93%) decyduje próg konkurencji albo maksymalny krok, o 2 804 konflikt marży z rynkiem, a tylko o
 249 sam rachunek zysku.
 
 ![Cenę najczęściej zatrzymuje próg konkurencji albo maksymalny krok](docs/img/decision-rules.png)
@@ -178,11 +178,11 @@ zyskiem przy prawdziwej elastyczności (+2,7%).
 
 | Pytanie | Odpowiedź z danych | Prawda | Ocena |
 |---|---|---|---|
-| Elastyczność: Uroda | 1,20 [1,07; 1,33] | 1,20 | trafione |
-| Elastyczność: Książki i media | 0,85 [0,74; 0,96] | 1,00 | chybione |
-| Elastyczność: Odzież | 1,81 [1,76; 1,87] | 1,80 | trafione |
-| Elastyczność: Elektronika | 1,83 [1,63; 2,03] | 1,60 | chybione |
 | Elastyczność: Zdrowie | 0,47 [0,36; 0,59] | 0,60 | chybione |
+| Elastyczność: Książki i media | 0,85 [0,74; 0,96] | 1,00 | chybione |
+| Elastyczność: Elektronika | 1,83 [1,63; 2,03] | 1,60 | chybione |
+| Elastyczność: Odzież | 1,81 [1,76; 1,87] | 1,80 | trafione |
+| Elastyczność: Uroda | 1,20 [1,07; 1,33] | 1,20 | trafione |
 | Pozostałe 10 kategorii | w przedziale | – | trafione |
 | Zmiana zysku, scenariusz bazowy | +2,6% [+2,5%; +2,7%] | +2,7% | chybione, poza przedziałem |
 | Zmiana obrotu, scenariusz bazowy | −0,5% | −0,3% | różnica 0,2 pkt proc. |
@@ -258,8 +258,8 @@ python scripts/get_data.py
 python main.py
 ```
 
-`get_data.py` klonuje Data-Generator v1.5.0 i generuje dane sklepu (ok. 10 s). `main.py` drukuje elastyczność,
-przykładowe propozycje i scenariusze, a pliki CSV i `summary.json` zapisuje w `output/` (ok. 10 s).
+`get_data.py` klonuje Data-Generator v1.5.0 i generuje dane sklepu (ok. 15 s). `main.py` drukuje elastyczność,
+przykładowe propozycje i scenariusze, a pliki CSV i `summary.json` zapisuje w `output/` (ok. 15 s).
 
 ### Wiersz poleceń
 
@@ -337,7 +337,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-46 testów (ok. 15 s) sprawdza estymatory na danych ze znaną elastycznością, reguły silnika na losowych produktach,
+49 testów (ok. 20 s) sprawdza estymatory na danych ze znaną elastycznością, reguły silnika na losowych produktach,
 symulację, tabelę konkurencji, wiersz poleceń i aplikację. Test aplikacji wymaga danych z `get_data.py`; bez nich
 jest pomijany, tak jak w CI.
 

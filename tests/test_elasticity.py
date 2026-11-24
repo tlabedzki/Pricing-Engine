@@ -97,3 +97,9 @@ def test_price_periods_counts_lines_in_each_period():
     assert periods["valid_to"].max() == pd.Timestamp("2023-01-12")
     # 2023-01-02 (one line, pool 1), 2023-01-07 (one line, pool 1), 2023-01-12 (two lines, pool 1 + 3)
     assert periods["exposure"].tolist() == pytest.approx([1.0, 1.0 + 0.5, 0.5])
+
+
+def test_shrink_gives_a_category_without_signal_the_pooled_mean():
+    posterior, posterior_se = shrink(np.array([1.0, 1.4, np.nan]), np.array([0.1, 0.1, np.nan]))
+    assert np.isfinite(posterior).all() and np.isfinite(posterior_se).all()
+    assert posterior[2] == pytest.approx(1.2)

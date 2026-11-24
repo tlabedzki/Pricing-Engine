@@ -46,6 +46,10 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
     negative = [cat(c) for c in facts["categories"]["negative"]]
     t = table.set_index("category")
     misses = e["misses"]
+    changed = int(base["raise"] + base["lower"])
+    gap = abs(base["profit_change"] - truth["profit_change"])
+    shown = misses + [c for c in ("Clothing", "Beauty") if c not in misses]
+    others = e["n"] - len(shown)
 
     def miss_list() -> str:
         return ", ".join(f"{cat(c)} ({n(t.loc[c, 'elasticity'], 2)} {'zamiast' if pl else 'vs'} "
@@ -54,8 +58,9 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
     out: dict[str, str] = {}
     if pl:
         out["result"] = (
-            f"**Wynik.** Silnik proponuje nową cenę dla {n(total)} produktów; w scenariuszu bazowym roczny zysk "
-            f"brutto rośnie o {pct(base['profit_change'])} przy {pct(base['revenue_change'])} obrotu. "
+            f"**Wynik.** Silnik sprawdza ceny {n(total)} produktów i zmienia {n(changed)} z nich; w scenariuszu "
+            f"bazowym roczny zysk brutto rośnie o {pct(base['profit_change'])} przy {pct(base['revenue_change'])} "
+            f"obrotu. "
             f"Przeliczenie tych samych cen z prawdziwą elastycznością daje {pct(truth['profit_change'])}, "
             f"a szacunek elastyczności trafia w prawdę w {e['hits']} z {e['n']} kategorii.")
         out["summary"] = (
@@ -101,15 +106,16 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"![Najwięcej zyskuje {cat(facts['categories']['top'])}](docs/img/categories.png)")
         out["verdicts"] = (
             f"Elastyczność trafia w prawdę w {e['hits']} z {e['n']} kategorii, a zysk scenariusza bazowego "
-            f"przewidziany z danych ({pct(base['profit_change'])}) zgadza się z zyskiem przy prawdziwej elastyczności "
+            f"przewidziany z danych ({pct(base['profit_change'])}) "
+            f"{'zgadza się z zyskiem' if gap <= 0.005 else 'różni się od zysku'} przy prawdziwej elastyczności "
             f"({pct(truth['profit_change'])}).\n\n"
             f"| Pytanie | Odpowiedź z danych | Prawda | Ocena |\n|---|---|---|---|\n"
             + "".join(
                 f"| Elastyczność: {cat(c)} | {n(r.elasticity, 2)} "
                 f"[{n(r.elasticity - 1.645 * r.elasticity_se, 2)}; {n(r.elasticity + 1.645 * r.elasticity_se, 2)}] | "
                 f"{n(r.true_elasticity, 2)} | {'chybione' if c in misses else 'trafione'} |\n"
-                for c, r in t.iterrows() if c in misses or c in ("Clothing", "Beauty"))
-            + f"| Pozostałe {e['n'] - len(misses) - 2} kategorii | w przedziale | – | trafione |\n"
+                for c, r in t.loc[shown].iterrows())
+            + f"| Pozostałe {others} kategorii | w przedziale | – | trafione |\n"
             f"| Zmiana zysku, scenariusz bazowy | {pct(base['profit_change'])} [{pct(low)}; {pct(high)}] | "
             f"{pct(truth['profit_change'])} | "
             f"{'trafione' if low <= truth['profit_change'] <= high else 'chybione, poza przedziałem'} |\n"
@@ -118,9 +124,10 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"{n(abs(base['revenue_change'] - truth['revenue_change']) * 100, 1)} pkt proc. |")
     else:
         out["result"] = (
-            f"**Result.** The engine proposes a new price for {n(total)} products; in the base scenario yearly gross "
-            f"profit grows by {pct(base['profit_change'])} at {pct(base['revenue_change'])} revenue. The same prices "
-            f"judged with the true elasticity give {pct(truth['profit_change'])}, and the elasticity estimate hits the "
+            f"**Result.** The engine checks the prices of {n(total)} products and changes {n(changed)}; in the base "
+            f"scenario yearly gross profit grows by {pct(base['profit_change'])} at {pct(base['revenue_change'])} "
+            f"revenue. The same prices judged with the true elasticity give {pct(truth['profit_change'])}, "
+            f"and the elasticity estimate hits the "
             f"truth in {e['hits']} of {e['n']} categories.")
         out["summary"] = (
             f"- **What worked:** the profit predicted from the data ({pct(base['profit_change'])}) is "
@@ -168,15 +175,16 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"![{cat(facts['categories']['top'])} gains the most](docs/img/categories.png)")
         out["verdicts"] = (
             f"The elasticity hits the truth in {e['hits']} of {e['n']} categories, and the base profit predicted from "
-            f"the data ({pct(base['profit_change'])}) matches the profit with the true elasticity "
+            f"the data ({pct(base['profit_change'])}) {'matches' if gap <= 0.005 else 'differs from'} the profit with "
+            f"the true elasticity "
             f"({pct(truth['profit_change'])}).\n\n"
             f"| Question | Answer from the data | Truth | Verdict |\n|---|---|---|---|\n"
             + "".join(
                 f"| Elasticity: {c} | {n(r.elasticity, 2)} "
                 f"[{n(r.elasticity - 1.645 * r.elasticity_se, 2)}, {n(r.elasticity + 1.645 * r.elasticity_se, 2)}] | "
                 f"{n(r.true_elasticity, 2)} | {'miss' if c in misses else 'hit'} |\n"
-                for c, r in t.iterrows() if c in misses or c in ("Clothing", "Beauty"))
-            + f"| Other {e['n'] - len(misses) - 2} categories | inside the interval | – | hit |\n"
+                for c, r in t.loc[shown].iterrows())
+            + f"| Other {others} categories | inside the interval | – | hit |\n"
             f"| Profit change, base scenario | {pct(base['profit_change'])} [{pct(low)}, {pct(high)}] | "
             f"{pct(truth['profit_change'])} | "
             f"{'hit' if low <= truth['profit_change'] <= high else 'miss, outside the interval'} |\n"

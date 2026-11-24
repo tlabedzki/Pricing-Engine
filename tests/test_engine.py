@@ -169,3 +169,17 @@ def test_a_competitor_promotion_counts_at_the_regular_price():
     assert result.loc[1, "competitor_min"] == 90
     assert result.loc[1, "competitor_median"] == 95
     assert result.loc[1, "offers"] == 2
+
+
+def test_step_and_price_endings_block_the_market_not_the_margin():
+    # cap 62.99 is above the step limit 62.1, but the only lower price ending in 9 (59) is a bigger step
+    row = run(price=69, cost=20, elasticity=1.2, market=59.99)
+    assert row.action == "keep"
+    assert row.binding == "step_down"
+    assert "minimum margin" not in row.reason
+    assert "more than the limit of +5%" in row.reason
+
+
+def test_margin_above_the_market_limit_is_a_market_conflict():
+    row = run(price=999, cost=700, elasticity=1.2, market=900)
+    assert row.binding == "market_conflict"

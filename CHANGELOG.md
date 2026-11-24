@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - proposed 1.1.2
+## [1.1.2] - 2026-11-24
 
 The engine and the app are unchanged; the shop data and every number built on them change.
 

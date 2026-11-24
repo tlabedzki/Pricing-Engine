@@ -17,32 +17,32 @@ marżę, a podwyżka bez rachunku może zjeść sprzedaż.
 o najwyższym oczekiwanym zysku. Dane mają klucz odpowiedzi, więc wynik da się sprawdzić.
 
 <!-- generated:result -->
-**Wynik.** Silnik sprawdza ceny 42 748 produktów i zmienia 34 152 z nich; w scenariuszu bazowym roczny zysk brutto
-rośnie o +2,6% przy −0,5% obrotu. Przeliczenie tych samych cen z prawdziwą elastycznością daje +2,7%, a szacunek
+**Wynik.** Silnik sprawdza ceny 42 748 produktów i zmienia 34 190 z nich; w scenariuszu bazowym roczny zysk brutto
+rośnie o +2,9% przy −0,6% obrotu. Przeliczenie tych samych cen z prawdziwą elastycznością daje +3,0%, a szacunek
 elastyczności trafia w prawdę w 12 z 15 kategorii.
 <!-- /generated:result -->
 
 <!-- generated:hero -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">
-  <img alt="Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok z 10% na 15%; roczny zysk brutto rośnie z 8,06 mln zł (+2,6%) do 8,37 mln zł (+6,5%), a tabela propozycji się odświeża" src="docs/img/app-demo.svg">
+  <img alt="Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok z 10% na 15%; roczny zysk brutto rośnie z 8,09 mln zł (+2,9%) do 8,40 mln zł (+6,9%), a tabela propozycji się odświeża" src="docs/img/app-demo.svg">
 </picture>
 <!-- /generated:hero -->
 
 **Stack:** Python · pandas · DuckDB · SQL · SciPy · matplotlib · Streamlit · pytest
 
 <!-- generated:summary -->
-- **Trafione:** zysk przewidziany z danych (+2,6%) różni się od zysku przy prawdziwej elastyczności (+2,7%) o 0,1 pkt
+- **Trafione:** zysk przewidziany z danych (+2,9%) różni się od zysku przy prawdziwej elastyczności (+3,0%) o 0,1 pkt
   proc.; rabaty i zmiany cen razem dają średni błąd elastyczności 0,12.
 - **Chybione:** w 3 kategoriach prawda leży poza przedziałem szacunku: Zdrowie (0,47 zamiast 0,60), Książki i media
-  (0,85 zamiast 1,00), Elektronika (1,83 zamiast 1,60); 24% produktów zostaje ponad progiem konkurencji, bo jeden krok
+  (0,85 zamiast 1,00), Elektronika (1,83 zamiast 1,60); 22% produktów zostaje ponad progiem konkurencji, bo jeden krok
   to za mało albo nie pozwala na to minimalna marża.
 <!-- /generated:summary -->
 
 ## 1. Sklep Lumo i pytanie o ceny
 
 Lumo to fikcyjny polski sklep internetowy z 15 kategoriami, od odzieży po meble. Ma dwa lata zamówień, historię
-cen katalogowych i ceny czterech fikcyjnych konkurentów. Kierownik kategorii chce wiedzieć, które ceny zmienić,
+cen katalogowych i ceny pięciu fikcyjnych konkurentów. Kierownik kategorii chce wiedzieć, które ceny zmienić,
 o ile i co z tego wyniknie.
 
 | Pytanie | Jak odpowiada analiza | Gdzie leży prawdziwa odpowiedź |
@@ -55,7 +55,7 @@ o ile i co z tego wyniknie.
 
 ## 2. Skąd wiadomo, co jest prawdą
 
-Dane pochodzą z [Data-Generatora](https://github.com/tlabedzki/Data-Generator) v1.5.0 (ziarno 42), który sam
+Dane pochodzą z [Data-Generatora](https://github.com/tlabedzki/Data-Generator) v1.6.0 (ziarno 42), który sam
 ustawia, jak klienci reagują na cenę. Te ustawienia to klucz odpowiedzi:
 
 - `category_price_elasticity`: elastyczność ceny w kategorii, czyli o ile procent spada sprzedaż po podwyżce
@@ -104,12 +104,12 @@ sprzedaje się kilka razy w roku. Rabaty niosą znacznie mocniejszy sygnał, wi�
 **Pytanie.** Którą cenę ustawić, żeby zarobić więcej i nie odjechać od konkurencji?
 
 **Co robi analiza.** Pozycję produktu na rynku mierzy indeks ceny: nasza cena podzielona przez medianę cen konkurencji
-(1,05 to 5% drożej). Dla każdego produktu w sprzedaży silnik sprawdza ceny kończące się na 9 w zakresie ±30% od
-dzisiejszej. Odrzuca te, które łamią reguły: marża netto po średnim rabacie co najmniej 15%, najwyżej 5% nad medianą cen
-konkurencji i najwyżej 10% zmiany naraz. Z pozostałych wybiera cenę o najwyższym oczekiwanym zysku brutto. Popyt przy
-nowej cenie liczy z elastyczności kategorii. Do propozycji dopisuje regułę, która zatrzymała cenę, i powód zdaniem,
-np. „Raise 9.6%, as far as the 10% step limit allows: 13% below the competitor median, demand in Electronics reacts
-strongly to price (elasticity 1.8)”.
+(1,05 to 5% drożej). Kilkudniową promocję konkurenta silnik liczy po jego cenie sprzed promocji. Dla każdego produktu w
+sprzedaży silnik sprawdza ceny kończące się na 9 w zakresie ±30% od dzisiejszej. Odrzuca te, które łamią reguły: marża
+netto po średnim rabacie co najmniej 15%, najwyżej 5% nad medianą cen konkurencji i najwyżej 10% zmiany naraz. Z
+pozostałych wybiera cenę o najwyższym oczekiwanym zysku brutto. Popyt przy nowej cenie liczy z elastyczności kategorii.
+Do propozycji dopisuje regułę, która zatrzymała cenę, i powód zdaniem, np. „Raise 9.6%, as far as the 10% step limit
+allows: 13% below the competitor median, demand in Electronics reacts strongly to price (elasticity 1.8)”.
 
 **Jak to sprawdzamy.** Testy sprawdzają, że żadna propozycja nie łamie reguł. Wyjątek to konflikt: gdy minimalna
 marża wymaga ceny ponad progiem konkurencji, wygrywa marża, a powód to mówi.
@@ -117,13 +117,13 @@ marża wymaga ceny ponad progiem konkurencji, wygrywa marża, a powód to mówi.
 **Wynik.**
 
 <!-- generated:proposals -->
-Na 42 748 produktów w sprzedaży silnik podnosi 19 867 cen, obniża 14 285 i zostawia 8 596. W progu +5% nad medianą
-konkurencji mieści się dziś 60% produktów z ofertą konkurencji, po zmianach 76%.
+Na 42 748 produktów w sprzedaży silnik podnosi 20 475 cen, obniża 13 715 i zostawia 8 558. W progu +5% nad medianą
+konkurencji mieści się dziś 62% produktów z ofertą konkurencji, po zmianach 78%.
 
-![Po zmianach 76% produktów mieści się w progu +5% nad konkurencją](docs/img/price-index.png)
+![Po zmianach 78% produktów mieści się w progu +5% nad konkurencją](docs/img/price-index.png)
 
-O 39 695 propozycjach (93%) decyduje próg konkurencji albo maksymalny krok, o 2 804 konflikt marży z rynkiem, a tylko o
-249 sam rachunek zysku.
+O 40 042 propozycjach (94%) decyduje próg konkurencji albo maksymalny krok, o 2 477 konflikt marży z rynkiem, a tylko o
+229 sam rachunek zysku.
 
 ![Cenę najczęściej zatrzymuje próg konkurencji albo maksymalny krok](docs/img/decision-rules.png)
 <!-- /generated:proposals -->
@@ -150,14 +150,14 @@ zysk.
 <!-- generated:scenarios -->
 | Scenariusz | Reguły | Zysk brutto | Obrót netto | Sztuki | Podwyżki / obniżki |
 |---|---|---|---|---|---|
-| ostrożny | do mediany konkurencji, krok 5%, popyt czulszy o 1,64 błędu | +0,5% | +0,1% | +0,7% | 12 840 / 16 092 |
-| bazowy | +5% nad medianą, krok 10% | +2,6% | −0,5% | 0,0% | 19 867 / 14 285 |
-| odważny | +10% nad medianą, krok 15% | +6,5% | −1,8% | −2,8% | 25 844 / 10 691 |
+| ostrożny | do mediany konkurencji, krok 5%, popyt czulszy o 1,64 błędu | +0,6% | +0,1% | +0,6% | 13 179 / 15 713 |
+| bazowy | +5% nad medianą, krok 10% | +2,9% | −0,6% | −0,2% | 20 475 / 13 715 |
+| odważny | +10% nad medianą, krok 15% | +6,9% | −2,0% | −3,2% | 26 517 / 10 047 |
 
-![Scenariusz bazowy: +2,6% zysku brutto przy −0,5% obrotu](docs/img/scenarios.png)
+![Scenariusz bazowy: +2,9% zysku brutto przy −0,6% obrotu](docs/img/scenarios.png)
 
 Przy losowaniu elastyczności z jej przedziałów zmiana zysku w scenariuszu bazowym mieści się w 90% przypadków między
-+2,5% a +2,7%. Najwięcej zyskuje Elektronika, tracą Książki i media oraz Zdrowie.
++2,8% a +3,0%. Najwięcej zyskuje Elektronika, traci Książki i media.
 
 ![Najwięcej zyskuje Elektronika](docs/img/categories.png)
 <!-- /generated:scenarios -->
@@ -169,19 +169,19 @@ niż daje dodatkowa sprzedaż.
 
 ## 6. Aplikacja: reguły na suwakach
 
-Aplikacja Streamlit pokazuje silnik w działaniu (animacja na górze strony). Z lewej są suwaki reguł: minimalna marża, próg
-nad medianą konkurencji, maksymalny krok i ostrożność, czyli o ile błędów standardowych zwiększyć elastyczność (jak w
-scenariuszu ostrożnym). Po każdej zmianie przelicza się roczny zysk, obrót, sztuki i zysk przy prawdziwej elastyczności.
-Zakładka „Proposals” to lista propozycji z powodem i pobieraniem CSV, „Categories” to zmiana zysku w kategoriach i
-reguły, które zdecydowały, a „Elasticity” to szacunek obok prawdy.
+Aplikacja Streamlit pokazuje silnik w działaniu (animacja na górze strony). Z lewej są suwaki reguł: minimalna marża,
+próg nad medianą konkurencji, maksymalny krok i ostrożność, czyli o ile błędów standardowych zwiększyć elastyczność (jak
+w scenariuszu ostrożnym). Po każdej zmianie przelicza się roczny zysk, obrót, sztuki i zysk przy prawdziwej
+elastyczności. Zakładka „Proposals” to lista propozycji z powodem i pobieraniem CSV, „Categories” to zmiana zysku w
+kategoriach i reguły, które zdecydowały, a „Elasticity” to szacunek obok prawdy.
 
 ![Aplikacja: reguły cenowe na suwakach z lewej, roczny zysk, obrót i sztuki po zmianie oraz lista propozycji z powodem zmiany ceny](docs/img/app.png)
 
 ## 7. Analiza kontra prawda
 
 <!-- generated:verdicts -->
-Elastyczność trafia w prawdę w 12 z 15 kategorii, a zysk scenariusza bazowego przewidziany z danych (+2,6%) zgadza się z
-zyskiem przy prawdziwej elastyczności (+2,7%).
+Elastyczność trafia w prawdę w 12 z 15 kategorii, a zysk scenariusza bazowego przewidziany z danych (+2,9%) zgadza się z
+zyskiem przy prawdziwej elastyczności (+3,0%).
 
 | Pytanie | Odpowiedź z danych | Prawda | Ocena |
 |---|---|---|---|
@@ -191,8 +191,8 @@ zyskiem przy prawdziwej elastyczności (+2,7%).
 | Elastyczność: Odzież | 1,81 [1,76; 1,87] | 1,80 | trafione |
 | Elastyczność: Uroda | 1,20 [1,07; 1,33] | 1,20 | trafione |
 | Pozostałe 10 kategorii | w przedziale | – | trafione |
-| Zmiana zysku, scenariusz bazowy | +2,6% [+2,5%; +2,7%] | +2,7% | chybione, poza przedziałem |
-| Zmiana obrotu, scenariusz bazowy | −0,5% | −0,3% | różnica 0,2 pkt proc. |
+| Zmiana zysku, scenariusz bazowy | +2,9% [+2,8%; +3,0%] | +3,0% | chybione, poza przedziałem |
+| Zmiana obrotu, scenariusz bazowy | −0,6% | −0,4% | różnica 0,2 pkt proc. |
 <!-- /generated:verdicts -->
 
 **Gdzie metody się pomyliły i czego to uczy.**
@@ -265,7 +265,7 @@ python scripts/get_data.py
 python main.py
 ```
 
-`get_data.py` klonuje Data-Generator v1.5.0 i generuje dane sklepu (ok. 15 s). `main.py` drukuje elastyczność,
+`get_data.py` klonuje Data-Generator v1.6.0 i generuje dane sklepu (ok. 15 s). `main.py` drukuje elastyczność,
 przykładowe propozycje i scenariusze, a pliki CSV i `summary.json` zapisuje w `output/` (ok. 15 s).
 
 ### Wiersz poleceń
@@ -280,10 +280,10 @@ Pierwsze wczytanie trwa kilka sekund, Ctrl+C w terminalu ją zatrzymuje.
 
 ## Dane
 
-Dane są syntetyczne: [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.5.0 (licencja MIT), ziarno
+Dane są syntetyczne: [Data-Generator](https://github.com/tlabedzki/Data-Generator) v1.6.0 (licencja MIT), ziarno
 42, generowane skryptem `scripts/get_data.py` do `data/raw/` (poza gitem). Silnik czyta cztery tabele z 15.
 Marki produktów są prawdziwe, ale produkty, ceny, marże i sprzedaż są fikcyjne i nic nie mówią o tych markach.
-Sklepy konkurencji (Taniutko, Parytet, Wrzos Atelier, Targowo) są fikcyjne.
+Sklepy konkurencji (Frugalia, Aequo, Maison Orvelle, Mercatoria, Fulmina) są fikcyjne.
 
 ```mermaid
 erDiagram
@@ -311,7 +311,7 @@ erDiagram
 ```
 
 Opis kolumn:
-[docs/columns.md w Data-Generatorze](https://github.com/tlabedzki/Data-Generator/blob/v1.5.0/docs/columns.md).
+[docs/columns.md w Data-Generatorze](https://github.com/tlabedzki/Data-Generator/blob/v1.6.0/docs/columns.md).
 Prawdziwa elastyczność trafia do `data/raw/truth.json` prosto z ustawień generatora.
 
 ## Struktura projektu

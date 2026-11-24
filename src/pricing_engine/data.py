@@ -9,7 +9,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = ROOT / "data" / "raw"
-DATA_GENERATOR_TAG = "v1.5.0"
+DATA_GENERATOR_TAG = "v1.6.0"
 TABLES = ("product_data", "price_history", "order_data", "competitor_prices")
 
 PRODUCT_COLUMNS = [

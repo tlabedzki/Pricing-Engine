@@ -1,6 +1,6 @@
 [project]
 name = "pricing-engine"
-version = "1.1.0"
+version = "1.1.1"
 description = "Price proposals for a fictional online shop from estimated price elasticity, competitor prices and margin rules"
 requires-python = ">=3.11"
 license = "MIT"

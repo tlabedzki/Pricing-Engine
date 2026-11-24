@@ -3,9 +3,9 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.1] - 2026-11-24
 
-Proposed as 1.1.1: only the README and its demo change, the engine and the app stay as in 1.1.0.
+Only the README and its demo change; the engine and the app stay as in 1.1.0.
 
 ### Changed
 

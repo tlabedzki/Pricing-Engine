@@ -9,7 +9,7 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW_DIR = ROOT / "data" / "raw"
-DATA_GENERATOR_TAG = "v1.4.3"
+DATA_GENERATOR_TAG = "v1.5.0"
 TABLES = ("product_data", "price_history", "order_data", "competitor_prices")
 
 PRODUCT_COLUMNS = [
@@ -24,7 +24,7 @@ ORDER_COLUMNS = [
 
 @dataclass
 class ShopData:
-    """The tables the engine reads. `competitor_prices` is the mock table until Data-Generator ships it."""
+    """The tables the engine reads. `competitor_prices` is the mock table only for releases before v1.5.0."""
 
     products: pd.DataFrame
     price_history: pd.DataFrame

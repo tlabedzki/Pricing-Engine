@@ -1,7 +1,7 @@
 """
-Mock `competitor_prices` table with the columns agreed for Data-Generator v1.5.0.
+Mock `competitor_prices` table with the columns of Data-Generator v1.5.0.
 
-The engine uses it only until the release ships the real table. Four fictional shops price every product they sell at
+The engine reads the real table; the mock stands in for releases before v1.5.0 and lets the tests run without data. Four fictional shops price every product they sell at
 a market reference (purchase price times the median markup of its product type) times their own price level, with
 persistent noise per product and a few price changes a year that return to that anchor.
 """

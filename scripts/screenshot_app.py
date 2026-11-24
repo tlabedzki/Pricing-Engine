@@ -1,5 +1,5 @@
 """
-Screenshot of the Streamlit app for the README (docs/img/app.png).
+Screenshot of the Dash app for the README (docs/img/app.png): the rules, the headline numbers and the proposals.
 
 Starts the app on 127.0.0.1 on a spare port, opens it in headless Chrome or Edge through the DevTools protocol, waits
 for the numbers, saves the PNG and stops the app. Needs the data from scripts/get_data.py and `websockets`
@@ -26,7 +26,7 @@ import websockets
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "docs" / "img" / "app.png"
 APP_PORT, DEBUG_PORT = 8599, 9334
-WIDTH, HEIGHT, SCALE = 1440, 900, 1.0
+WIDTH, HEIGHT, SCALE = 1440, 1240, 1.0
 BROWSERS = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
@@ -79,8 +79,8 @@ async def capture(browser: str) -> None:
             await send("Emulation.setDeviceMetricsOverride", width=WIDTH, height=HEIGHT, deviceScaleFactor=SCALE,
                        mobile=False)
             await send("Page.navigate", url=f"http://127.0.0.1:{APP_PORT}/")
-            ready = "document.querySelectorAll('[data-testid=stMetricValue]').length === 5 && " \
-                    "!document.querySelector('[data-testid=stSpinner]')"
+            ready = ("[...document.querySelectorAll('.dg-stat-value')].filter(e => e.textContent).length === 5 && "
+                     "document.querySelectorAll('.pe-table tbody tr').length > 0")
             for _ in range(240):
                 result = await send("Runtime.evaluate", expression=ready, returnByValue=True)
                 if result.get("result", {}).get("value"):
@@ -88,7 +88,8 @@ async def capture(browser: str) -> None:
                 await asyncio.sleep(0.5)
             else:
                 raise SystemExit("The app did not show its numbers in 120 s")
-            await asyncio.sleep(4)  # charts and table finish drawing
+            await send("Runtime.evaluate", expression="document.getElementById('rules').scrollIntoView()")
+            await asyncio.sleep(2)  # fonts and layout settle
             shot = await send("Page.captureScreenshot", format="png", captureBeyondViewport=False)
             OUT.write_bytes(base64.b64decode(shot["data"]))
     finally:
@@ -99,15 +100,17 @@ async def capture(browser: str) -> None:
 def main() -> None:
     browser = find_browser()
     env = {**os.environ, "MPLBACKEND": "Agg"}
-    app = subprocess.Popen([sys.executable, "-m", "streamlit", "run", str(ROOT / "app" / "streamlit_app.py"),
-                            "--server.address", "127.0.0.1", "--server.port", str(APP_PORT),
-                            "--server.headless", "true"], cwd=ROOT, env=env,
+    env["PE_PORT"] = str(APP_PORT)
+    app = subprocess.Popen([sys.executable, "-m", "ui.app"], cwd=ROOT, env=env,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **HIDDEN)
     try:
-        wait_for(f"http://127.0.0.1:{APP_PORT}/_stcore/health")
+        wait_for(f"http://127.0.0.1:{APP_PORT}/")
         asyncio.run(capture(browser))
     finally:
-        app.terminate()
+        if os.name == "nt":  # the venv python is a launcher: stop its child too
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(app.pid)], capture_output=True)
+        else:
+            app.terminate()
         app.wait(timeout=20)
     print(f"Saved {OUT.relative_to(ROOT)} ({OUT.stat().st_size / 1024:.0f} KB)")
 

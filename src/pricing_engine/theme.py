@@ -2,8 +2,8 @@
 Visual tokens shared by the app, the README charts and the animated demo: the portfolio look of Data-Generator.
 
 A white page, teal for the data, copper for the one thing to notice, neutral greys for everything else, Inter for all
-text with tabular figures. The values mirror Data-Generator's ui/theme.py; .streamlit/config.toml repeats them for
-Streamlit (tests/test_theme.py keeps the two in step).
+text with tabular figures. The values mirror Data-Generator's ui/theme.py; the app (ui/) and the README charts
+(scripts/make_charts.py) read them from here.
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ LINE = "#e5e9ea"    # hairlines and the chart grid
 WASH = "#f5f7f7"    # sidebar, table header, hover
 
 FONT = "Inter"
-SANS_STACK = f"{FONT}, 'Segoe UI', system-ui, sans-serif"
+SANS_STACK = f"'{FONT}', 'Segoe UI', system-ui, sans-serif"
 NUMBER_FEATURES = "'tnum' 1, 'cv11' 1"  # tabular figures for every number
 
 ACTIONS = {"raise": PRIMARY, "lower": ACCENT, "keep": MIST}

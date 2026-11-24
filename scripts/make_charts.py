@@ -134,7 +134,7 @@ class Format:
 
 
 def register_inter() -> None:
-    """Inter from app/static/fonts at the two weights the charts use, tabular digits, Latin Extended as fallback."""
+    """Inter from ui/assets/fonts at the two weights the charts use, tabular digits, Latin Extended as fallback."""
     from matplotlib import font_manager
 
     for weight in (400, 600):

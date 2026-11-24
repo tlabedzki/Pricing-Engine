@@ -1,0 +1,36 @@
+"""
+Visual tokens of the app: the portfolio look of Data-Generator (ui/theme.py there), white page, teal and copper.
+
+The colours live in src/pricing_engine/theme.py, shared with the README charts; this module adds the Mantine theme.
+"""
+from pricing_engine.theme import (  # noqa: F401  (re-exported for the app and the figures)
+    ACCENT,
+    ACTIONS,
+    AREA,
+    COPPER,
+    FONT,
+    INK,
+    LINE,
+    MIST,
+    MUTED,
+    PAGE,
+    PRIMARY,
+    SANS_STACK,
+    TEAL,
+    TEXT,
+    WASH,
+)
+
+NUM_STACK = SANS_STACK
+
+MANTINE_THEME = {
+    "fontFamily": SANS_STACK,
+    "fontFamilyMonospace": "ui-monospace, 'Cascadia Mono', Consolas, monospace",
+    "headings": {"fontFamily": SANS_STACK, "fontWeight": "700"},
+    "primaryColor": "petrol",
+    "primaryShade": 7,
+    "colors": {"petrol": TEAL, "copper": COPPER},
+    "black": INK,
+    "defaultRadius": "sm",
+    "fontSizes": {"xs": "12px", "sm": "14px", "md": "15px", "lg": "17px", "xl": "20px"},
+}

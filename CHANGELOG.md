@@ -3,23 +3,31 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased] - 1.0.1
+## [1.1.0] - 2026-11-24
 
 ### Changed
 
-- The portfolio look of Data-Generator: Inter for all text, served by the app from `app/static/fonts/` (no font
-  service), tabular figures for every number, teal `#006e79` as the main colour, copper `#c7692c` for the one mark to
-  notice and grey for the rest. Colours live in `src/pricing_engine/theme.py`; `.streamlit/config.toml` repeats them
-  for Streamlit and a test keeps the two in step.
-- The proposals table and the charts in the app draw on a canvas, where CSS font features do not reach: a small
-  extra face with Inter's tabular digits (`scripts/inter_font.py`) serves 0-9, so their digits line up too.
-- README charts, the animated demo and the app screenshot redrawn in Inter with the new palette; the misses in the
-  elasticity chart are marked in copper instead of red. The walkthrough notebook uses the same colours.
+- The app moves from Streamlit to Dash and Mantine with the building blocks and look of Data-Generator: a white page,
+  a hero, numbered sections (01 Rules, 02 Result), Inter served by the app from `ui/assets/fonts/` (no font service),
+  tabular figures for every number, teal `#006e79` for the data and copper `#c7692c` for the one mark to notice.
+  Same functions as before: the four rule sliders, the category filter, the headline numbers, the Proposals,
+  Categories and Elasticity views, the proposals table with reasons, the CSV download and rules from the address
+  (`?above=10&step=15`). The same rules give the same headline numbers as 1.0.0.
+- Start the app with `python -m ui.app` (http://127.0.0.1:8050). Streamlit and Altair are no longer dependencies;
+  Dash, Dash Mantine Components and Plotly are.
+- Colours live in `src/pricing_engine/theme.py`, shared by the app and the README charts. The README charts, the
+  animated demo and the app screenshot are redrawn in Inter with the new palette; the misses in the elasticity chart
+  are marked in copper instead of red. The walkthrough notebook uses the same colours.
+
+### Added
+
+- Tests of the app (`tests/test_ui.py`): layout, callbacks, table, download, figures and the 1.0.0 numbers, and of
+  the look (`tests/test_theme.py`): fonts from the repo, colour tokens.
 
 ### Fixed
 
-- The animated demo no longer hides the value above a slider for a moment when the dragged value is exactly half
-  way between two whole numbers, and never covers the slider's own label.
+- The animated demo no longer hides a slider value for a moment when the dragged value is exactly half way between
+  two whole numbers.
 
 ## [1.0.0] - 2026-11-24
 

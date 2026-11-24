@@ -1,14 +1,14 @@
 [project]
 name = "pricing-engine"
-version = "1.0.0"
+version = "1.1.0"
 description = "Price proposals for a fictional online shop from estimated price elasticity, competitor prices and margin rules"
 requires-python = ">=3.11"
 license = "MIT"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
-addopts = "-q"
+pythonpath = ["src", "."]
+addopts = "-q -p no:dash"
 
 [tool.ruff]
 line-length = 120

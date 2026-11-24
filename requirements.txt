@@ -4,7 +4,9 @@ pyarrow~=18.1.0
 duckdb~=2.0.1
 scipy~=1.17.1
 matplotlib~=3.11.2
-streamlit~=1.67.0
+dash~=4.5.1
+dash-mantine-components~=3.0.0
+plotly~=7.1.0
 # scripts/get_data.py runs Data-Generator, which needs these two
 Faker~=33.1.0
 colorama~=0.4.6

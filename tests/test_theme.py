@@ -1,66 +1,34 @@
-"""The portfolio look: the Streamlit theme matches src/pricing_engine/theme.py and Inter is served from the repo."""
-import sys
-import tomllib
-
-import pytest
+"""The portfolio look: Inter served from the repo, the colours of Data-Generator in one place."""
+import re
 
 from pricing_engine import data, theme
+from ui import theme as ui_theme
 
-CONFIG = tomllib.loads((data.ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8"))
-FONTS = data.ROOT / "app" / "static" / "fonts"
-
-
-def test_theme_colours_match_the_shared_tokens():
-    t = CONFIG["theme"]
-    assert t["primaryColor"] == theme.PRIMARY == "#006e79"
-    assert t["textColor"] == theme.INK
-    assert t["backgroundColor"] == theme.PAGE
-    assert t["secondaryBackgroundColor"] == theme.WASH
-    assert t["borderColor"] == theme.LINE
-    assert t["chartCategoricalColors"][:3] == [theme.PRIMARY, theme.ACCENT, theme.MIST]
+ASSETS = data.ROOT / "ui" / "assets"
 
 
 def test_inter_comes_from_files_in_the_repo_and_no_font_service():
-    t = CONFIG["theme"]
-    assert CONFIG["server"]["enableStaticServing"] is True
-    assert t["font"].startswith("Inter") and t["headingFont"].startswith("Inter")
-    faces = t["fontFaces"]
-    assert {face["family"] for face in faces} == {"Inter"}
-    for face in faces:
-        assert face["url"].startswith("app/static/fonts/")
-        assert (data.ROOT / face["url"]).is_file()
-    assert faces[-1]["unicodeRange"] == "U+0030-0039"  # the tabular digits face wins for 0-9
-    assert (FONTS / "OFL-inter.txt").is_file()
-    text = (data.ROOT / ".streamlit" / "config.toml").read_text(encoding="utf-8")
-    assert "googleapis" not in text and "gstatic" not in text
+    css = (ASSETS / "fonts.css").read_text(encoding="utf-8")
+    urls = re.findall(r"url\('([^']+)'\)", css)
+    assert len(urls) == 2 and all((ASSETS / url).is_file() for url in urls)
+    assert (ASSETS / "fonts" / "OFL-inter.txt").is_file()
+    for path in [*ASSETS.rglob("*.css"), *(data.ROOT / "ui").glob("*.py")]:
+        text = path.read_text(encoding="utf-8")
+        assert "googleapis" not in text and "gstatic" not in text, path
 
 
-def test_digits_face_has_tabular_digits_at_every_weight():
-    pytest.importorskip("brotli")
-    from fontTools.ttLib import TTFont
-    from fontTools.varLib import instancer
-
-    font = TTFont(FONTS / "inter-digits-tnum-wght-normal.woff2")
-    cmap = font.getBestCmap()
-    assert sorted(cmap) == list(range(0x30, 0x3A))
-    assert "fvar" in font  # still variable: the same digits at 400, 500 and 700
-    for weight in (400, 700):
-        static = instancer.instantiateVariableFont(TTFont(FONTS / "inter-digits-tnum-wght-normal.woff2"),
-                                                   {"wght": weight})
-        widths = {static["hmtx"][cmap[code]][0] for code in range(0x30, 0x3A)}
-        assert len(widths) == 1
+def test_style_sheet_tokens_match_the_shared_colours():
+    css = (ASSETS / "style.css").read_text(encoding="utf-8")
+    tokens = dict(re.findall(r"--dg-([a-z-]+):\s*([^;]+);", css))
+    assert tokens["teal"] == theme.PRIMARY == "#006e79"
+    assert tokens["copper"] == theme.ACCENT == "#c7692c"
+    assert tokens["ink"] == theme.INK and tokens["text"] == theme.TEXT and tokens["muted"] == theme.MUTED
+    assert tokens["line"] == theme.LINE and tokens["wash"] == theme.WASH
+    assert tokens["sans"].startswith("'Inter'")
+    assert "'tnum' 1" in tokens["num-features"]
 
 
-def test_digits_face_matches_its_build_script():
-    pytest.importorskip("brotli")
-    import io
-
-    from fontTools.ttLib import TTFont
-
-    sys.path.insert(0, str(data.ROOT / "scripts"))
-    import inter_font
-
-    built = TTFont(io.BytesIO(inter_font.build_digits()))
-    stored = TTFont(FONTS / "inter-digits-tnum-wght-normal.woff2")
-    assert built.getBestCmap() == stored.getBestCmap()
-    assert built["hmtx"].metrics == stored["hmtx"].metrics
+def test_mantine_theme_uses_inter_and_the_teal_scale():
+    mantine = ui_theme.MANTINE_THEME
+    assert mantine["fontFamily"].startswith("'Inter'")
+    assert mantine["colors"]["petrol"][mantine["primaryShade"]] == theme.PRIMARY

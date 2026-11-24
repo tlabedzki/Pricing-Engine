@@ -3,12 +3,12 @@ Build docs/img/app-demo.svg and app-demo-dark.svg, the animated demo at the top 
 
     python scripts/make_demo_svg.py [--shots DIR] [--reuse] [--quality 72]
 
-The demo is an illustration, not a recording. The script starts the Streamlit app on 127.0.0.1 and takes screenshots
-of it in three sets of rules: the base rules, the competitor limit moved to +10% and then the largest step to 15%
-(headless Chrome or Edge through the DevTools protocol). The moving parts are vectors: the cursor, the two sliders it
-drags and the five headline numbers. Those numbers come from the pricing engine in this script
-(`pricing_engine.report.kpis`), the same code the app and the README use, and the script stops if the app shows other
-numbers. The proposals table under the numbers changes with a cross-fade between the screenshots.
+The demo is an illustration, not a recording. The script starts the Dash app on 127.0.0.1 and takes screenshots of
+its Rules and Result sections in three sets of rules: the base rules, the competitor limit moved to +10% and then the
+largest step to 15% (headless Chrome or Edge through the DevTools protocol). The moving parts are vectors: the
+cursor, the two sliders it drags with their values, and the five headline numbers. Those numbers come from the
+pricing engine in this script (`pricing_engine.report.kpis`), the same code the app and the README use, and the
+script stops if the app shows other numbers. The part of the page under the numbers changes with a cross-fade.
 
 Only CSS animations inside the SVG, no script: GitHub shows README images through <img>. With prefers-reduced-motion
 the image shows the base rules without motion. The two files differ only in the browser frame (light and dark GitHub
@@ -36,15 +36,17 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT))
 
 import inter_font  # noqa: E402  (scripts/ is on sys.path when this file runs)
 
 from pricing_engine import data, elasticity, engine, report  # noqa: E402
 from pricing_engine import theme as look  # noqa: E402
+from ui.app import STATS, rule_text  # noqa: E402
 
 OUT_DIR = ROOT / "docs" / "img"
 DEBUG_PORT, APP_PORT = 9335, 8597
-VW, VH = 1200, 700  # browser viewport in CSS px
+VW, VH = 1200, 740  # browser viewport in CSS px
 SCALE = 1.25  # screenshot pixels per CSS px
 W = 1000  # SVG width; the viewport is scaled by W / VW
 BAR = 36  # browser bar above the page
@@ -68,8 +70,6 @@ STATES = {
     "above": {"above": 10, "step": 10},
     "bold": {"above": 10, "step": 15},
 }
-SLIDER_ABOVE, SLIDER_STEP = 1, 2  # positions of the two sliders in the sidebar
-METRICS = ("profit", "revenue", "units", "raised", "truth")
 HIDDEN = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
 
 
@@ -96,39 +96,35 @@ def wait_for(url: str, seconds: float = 120) -> None:
 
 GEOMETRY_JS = """(() => {
   const box = e => { const r = e.getBoundingClientRect(); return {x: r.left, y: r.top, w: r.width, h: r.height}; };
+  const text = e => { const r = document.createRange(); r.selectNodeContents(e); return box(r); };
   const style = e => { const s = getComputedStyle(e);
     return {color: s.color, background: s.backgroundColor, size: parseFloat(s.fontSize), weight: s.fontWeight,
-            radius: s.borderRadius, spacing: parseFloat(s.letterSpacing) || 0}; };
-  const sliders = [...document.querySelectorAll('[data-testid="stSlider"]')].map(el => {
-    const input = el.querySelector('input[type="range"]');
-    const thumb = input.parentElement.parentElement;
-    const label = el.querySelector('[data-testid="stSliderThumbValue"]');
-    const title = el.querySelector('[data-testid="stWidgetLabel"]');
-    return {title: title ? box(title) : null, thumb: box(thumb), track: box(thumb.parentElement),
-            label: box(label), label_text: label.textContent,
-            label_style: style(label.querySelector('p') || label), thumb_style: style(thumb),
-            min: +input.min, max: +input.max, value: +input.value, row: box(el)};
+            spacing: parseFloat(s.letterSpacing) || 0, border: s.borderTopColor,
+            border_width: parseFloat(s.borderTopWidth) || 0}; };
+  const rules = {};
+  document.querySelectorAll('.pe-rule').forEach(el => {
+    const thumb = el.querySelector('.mantine-Slider-thumb');
+    const value = el.querySelector('.pe-rule-value');
+    rules[value.id.replace('-value', '')] = {
+      thumb: box(thumb), thumb_style: style(thumb), track: box(el.querySelector('.mantine-Slider-track')),
+      bar: box(el.querySelector('.mantine-Slider-bar')), value: text(value), value_text: value.textContent,
+      value_style: style(value), min: +thumb.getAttribute('aria-valuemin'), max: +thumb.getAttribute('aria-valuemax'),
+      now: +thumb.getAttribute('aria-valuenow')};
   });
-  const metrics = [...document.querySelectorAll('[data-testid="stMetric"]')].map(el => {
-    const value = el.querySelector('[data-testid="stMetricValue"]');
-    const delta = el.querySelector('[data-testid="stMetricDelta"]');
-    const text = delta ? delta.querySelector('p') : null;
-    const icon = delta ? delta.querySelector('svg') : null;
-    return {value: box(value), value_text: value.textContent, value_style: style(value.querySelector('p') || value),
-            delta: delta ? box(delta) : null, delta_text: delta ? delta.textContent : '',
-            delta_style: delta ? style(delta) : null, delta_text_box: text ? box(text) : null,
-            delta_text_style: text ? style(text) : null, delta_icon: icon ? box(icon) : null,
-            icon_kind: icon ? icon.getAttribute('data-testid') : null};
+  const stats = [...document.querySelectorAll('.dg-stat')].map(el => {
+    const value = el.querySelector('.dg-stat-value'), note = el.querySelector('.dg-stat-note');
+    return {value: text(value), value_text: value.textContent, value_style: style(value),
+            note: text(note), note_text: note.textContent, note_style: style(note)};
   });
-  const tabs = document.querySelector('[data-testid="stTabs"]');
-  const main = document.querySelector('[data-testid="stMain"]') || document.querySelector('section.main');
-  const sidebar = document.querySelector('[data-testid="stSidebar"]');
-  return JSON.stringify({sliders, metrics, tabs: box(tabs), main: box(main), sidebar: box(sidebar)});
+  return JSON.stringify({rules, stats, view: box(document.getElementById('view'))});
 })()"""
 
-READY_JS = ("document.querySelectorAll('[data-testid=stMetricValue]').length === 5 && "
-            "!document.querySelector('[data-testid=stSpinner]') && "
-            "!document.querySelector('[data-testid=stStatusWidget] [data-testid=stStatusWidgetRunningIcon]')")
+READY_JS = ("[...document.querySelectorAll('.dg-stat-value')].filter(e => e.textContent).length === 5 && "
+            "document.querySelectorAll('.pe-table tbody tr').length > 0 && "
+            "document.getElementById('above-value').textContent === {above!r} && "
+            "document.getElementById('step-value').textContent === {step!r}")
+SCROLL_JS = ("window.scrollTo(0, document.getElementById('rules').getBoundingClientRect().top + window.scrollY - 28); "
+             "document.activeElement && document.activeElement.blur()")
 
 
 async def capture(browser: str, shots: Path) -> None:
@@ -167,13 +163,17 @@ async def capture(browser: str, shots: Path) -> None:
                 await send("Page.navigate", url=f"http://127.0.0.1:{APP_PORT}/?above={rules['above']}"
                                                 f"&step={rules['step']}")
                 await asyncio.sleep(2)
+                ready = READY_JS.format(above=rule_text("above", rules["above"]),
+                                        step=rule_text("step", rules["step"]))
                 for _ in range(240):
-                    if await js(READY_JS):
+                    if await js(ready):
                         break
                     await asyncio.sleep(0.5)
                 else:
                     raise SystemExit(f"The app did not show its numbers for {name} in 120 s")
-                await asyncio.sleep(3)
+                await js("document.fonts.ready.then(() => true)")
+                await js(SCROLL_JS)
+                await asyncio.sleep(1.5)
                 shot = await send("Page.captureScreenshot", format="png", captureBeyondViewport=False)
                 (shots / f"{name}.png").write_bytes(base64.b64decode(shot["data"]))
                 geometry["states"][name] = json.loads(await js(GEOMETRY_JS))
@@ -185,16 +185,14 @@ async def capture(browser: str, shots: Path) -> None:
 
 def take_screenshots(shots: Path) -> None:
     browser = find_browser()
-    env = {**os.environ, "MPLBACKEND": "Agg"}
-    app = subprocess.Popen([sys.executable, "-m", "streamlit", "run", str(ROOT / "app" / "streamlit_app.py"),
-                            "--server.address", "127.0.0.1", "--server.port", str(APP_PORT),
-                            "--server.headless", "true"], cwd=ROOT, env=env,
+    env = {**os.environ, "MPLBACKEND": "Agg", "PE_PORT": str(APP_PORT)}
+    app = subprocess.Popen([sys.executable, "-m", "ui.app"], cwd=ROOT, env=env,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **HIDDEN)
     try:
-        wait_for(f"http://127.0.0.1:{APP_PORT}/_stcore/health")
+        wait_for(f"http://127.0.0.1:{APP_PORT}/")
         asyncio.run(capture(browser, shots))
     finally:
-        if os.name == "nt":
+        if os.name == "nt":  # the venv python is a launcher: stop its child too
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(app.pid)], capture_output=True)
         else:
             app.terminate()
@@ -213,8 +211,6 @@ def numbers() -> dict[str, dict]:
                                                       max_step=rules["step"] / 100))
         out[name] = report.kpis(proposals, truth)
     return out
-
-
 
 
 # ---- 2. animation ------------------------------------------------------------------------------------------------
@@ -262,7 +258,7 @@ def path_value(stops: list[tuple[float, float]], t: float) -> float:
 
 
 def font_faces(text: str, weights: set[int]):
-    """Inter (the app's font, app/static/fonts) at each weight the vector texts use, only the characters in text,
+    """Inter (the app's font, ui/assets/fonts) at each weight the vector texts use, only the characters in text,
     with tabular digits like the app. Returns the @font-face rules and one of the fonts (same line metrics)."""
     rules, font = [], None
     for weight in sorted(weights):
@@ -296,16 +292,18 @@ def css_color(value: str) -> str:
 
 
 CURSOR = "M0 0V17.2L4.3 13.3L7.2 20.1L10.3 18.8L7.5 12.2H13.2Z"  # arrow, tip at 0,0
-ARROW_UP = "M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"  # Streamlit's delta icon, 24 x 24
 
 
 def check_numbers(geo: dict, values: dict) -> None:
-    """Stop when the app showed other headline numbers than the engine gives here."""
+    """Stop when the app showed other headline numbers or rule values than the engine gives here."""
     for name, state in geo["states"].items():
-        shown = [(m["value_text"], m["delta_text"]) for m in state["metrics"]]
-        expected = [(values[name][key], values[name].get(f"{key}_delta", "")) for key in METRICS]
+        shown = [(s["value_text"], s["note_text"]) for s in state["stats"]]
+        expected = [(values[name][key], note.format(**values[name])) for key, _, note in STATS]
         if shown != expected:
             sys.exit(f"The app shows {shown} for {name}, the engine gives {expected}: retake the screenshots.")
+        for rule in ("above", "step"):
+            if state["rules"][rule]["value_text"] != rule_text(rule, STATES[name][rule]):
+                sys.exit(f"The app shows {rule} = {state['rules'][rule]['value_text']} for {name}.")
 
 
 def opacity_windows(m: Motion, windows: list[tuple[float, float]], rest: int, fade: float = 0.25) -> str:
@@ -348,135 +346,127 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
         "bold": opacity_windows(m, [(t_release2 + lag, t_reset_end + lag)], 0),
     }
 
-    def box(b: dict) -> tuple[float, float, float, float]:
-        return b["x"] * k, b["y"] * k, b["w"] * k, b["h"] * k
-
     # Inter for every vector text, at the weights the app uses, with its line metrics for the baselines
-    texts = "".join(v for s in STATES for v in values[s].values() if isinstance(v, str)) + "+-%0123456789"
-    styles = [style for state in geo["states"].values() for metric in state["metrics"]
-              for style in (metric["value_style"], metric["delta_text_style"]) if style]
-    styles += [s["label_style"] for s in base["sliders"]]
+    texts = "".join(s["value_text"] + s["note_text"] for state in geo["states"].values() for s in state["stats"])
+    texts += "".join(v for s in STATES for v in values[s].values() if isinstance(v, str)) + "+-%.0123456789 SE"
+    styles = [style for state in geo["states"].values() for s in state["stats"]
+              for style in (s["value_style"], s["note_style"])]
+    styles += [r["value_style"] for r in base["rules"].values()]
     face, font = font_faces(texts, {weight_of(style) for style in styles})
     upm = font["head"].unitsPerEm
     ascent, descent = font["hhea"].ascent / upm, -font["hhea"].descent / upm
 
     def baseline(b: dict, size: float) -> float:
-        """Baseline of one line of text centred in its CSS line box b."""
+        """Baseline of one line of text centred in its box b."""
         return (b["y"] + (b["h"] - (ascent + descent) * size) / 2 + ascent * size) * k
 
-    # 1. the page: the base screenshot, the proposals table of the other states cross-faded on top
-    main_x = base["main"]["x"]
-    table_y = base["tabs"]["y"] - 8
+    # 1. the page: the base screenshot, the part under the numbers of the other states cross-faded on top
     layers = [f'<image width="{W}" height="{vh:.2f}" href="data:image/webp;base64,{webp(shot["base"], quality)}"/>']
-    for name in ("above", "bold"):
-        crop = shot[name].crop((int(main_x * px), int(table_y * px), shot[name].width, shot[name].height))
-        layers.append(f'<g class="{show[name]}"><image x="{main_x * k:.2f}" y="{table_y * k:.2f}" '
-                      f'width="{(VW - main_x) * k:.2f}" height="{(VH - table_y) * k:.2f}" '
-                      f'href="data:image/webp;base64,{webp(crop, quality)}"/></g>')
+    view_y = max(base["view"]["y"] - 8, 0)
+    if view_y < VH:
+        for name in ("above", "bold"):
+            crop = shot[name].crop((0, int(view_y * px), shot[name].width, shot[name].height))
+            layers.append(f'<g class="{show[name]}"><image x="0" y="{view_y * k:.2f}" width="{W}" '
+                          f'height="{(VH - view_y) * k:.2f}" href="data:image/webp;base64,{webp(crop, quality)}"/></g>')
 
-    # 2. the headline numbers: a white patch over each value and delta, then the numbers of each state
-    for i in range(len(METRICS)):
-        parts = [geo["states"][s]["metrics"][i] for s in STATES]
-        x0 = min(p["value"]["x"] for p in parts) - 2
-        x1 = max(max(p["value"]["x"] + p["value"]["w"], p["delta"]["x"] + p["delta"]["w"] if p["delta"] else 0)
-                 for p in parts) + 2
-        y0 = min(p["value"]["y"] for p in parts)
-        y1 = max(p["delta"]["y"] + p["delta"]["h"] if p["delta"] else p["value"]["y"] + p["value"]["h"]
-                 for p in parts) + 2
-        layers.append(f'<rect x="{x0 * k:.2f}" y="{y0 * k:.2f}" width="{(x1 - x0) * k:.2f}" '
-                      f'height="{(y1 - y0) * k:.2f}" fill="{pixel(x0 - 1, y0 + 2)}"/>')
+    # 2. the headline numbers: a patch over each value and note, then the numbers of each state
+    for i in range(len(STATS)):
+        parts = [geo["states"][s]["stats"][i] for s in STATES]
+        x0 = min(min(p["value"]["x"], p["note"]["x"]) for p in parts) - 2
+        x1 = max(max(p["value"]["x"] + p["value"]["w"], p["note"]["x"] + p["note"]["w"]) for p in parts) + 2
+        for part in ("value", "note"):
+            y0 = min(p[part]["y"] for p in parts) - 1
+            y1 = max(p[part]["y"] + p[part]["h"] for p in parts) + 1
+            layers.append(f'<rect x="{x0 * k:.2f}" y="{y0 * k:.2f}" width="{(x1 - x0) * k:.2f}" '
+                          f'height="{(y1 - y0) * k:.2f}" fill="{pixel(x0 - 1, y0 + 1)}"/>')
     for name in STATES:
         parts = []
-        for metric in geo["states"][name]["metrics"]:
-            vs = metric["value_style"]
-            parts.append(f'<text class="w{weight_of(vs)}" x="{metric["value"]["x"] * k:.2f}" '
-                         f'y="{baseline(metric["value"], vs["size"]):.2f}"{spacing(vs, k)} '
-                         f'font-size="{vs["size"] * k:.2f}" fill="{css_color(vs["color"])}">'
-                         f'{metric["value_text"]}</text>')
-            if metric["delta"]:
-                dx, dy, dw, dh = box(metric["delta"])
-                ds = metric["delta_text_style"]
-                parts.append(f'<rect x="{dx:.2f}" y="{dy:.2f}" width="{dw:.2f}" height="{dh:.2f}" rx="{dh / 2:.2f}" '
-                             f'fill="{css_color(metric["delta_style"]["background"])}"/>')
-                if metric["delta_icon"]:
-                    ix, iy, iw, _ = box(metric["delta_icon"])
-                    turn = "" if metric["icon_kind"].endswith("Up") else " rotate(180 12 12)"
-                    parts.append(f'<path d="{ARROW_UP}" transform="translate({ix:.2f} {iy:.2f}) '
-                                 f'scale({iw / 24:.4f}){turn}" fill="{css_color(ds["color"])}"/>')
-                parts.append(f'<text class="w{weight_of(ds)}" x="{metric["delta_text_box"]["x"] * k:.2f}" '
-                             f'y="{baseline(metric["delta_text_box"], ds["size"]):.2f}" '
-                             f'font-size="{ds["size"] * k:.2f}" fill="{css_color(ds["color"])}">'
-                             f'{metric["delta_text"]}</text>')
+        for stat in geo["states"][name]["stats"]:
+            for part in ("value", "note"):
+                b, st = stat[part], stat[f"{part}_style"]
+                parts.append(f'<text class="w{weight_of(st)}" x="{b["x"] * k:.2f}" y="{baseline(b, st["size"]):.2f}"'
+                             f'{spacing(st, k)} font-size="{st["size"] * k:.2f}" fill="{css_color(st["color"])}">'
+                             f'{stat[f"{part}_text"]}</text>')
         layers.append(f'<g class="{show[name]}">{"".join(parts)}</g>')
 
-    # 3. the two sliders the cursor drags: a patch in the sidebar colour, then track, thumb and value as vectors
+    # 3. the two sliders the cursor drags: a patch over track and value, then track, bar, thumb and value as vectors
     paths = {
-        SLIDER_ABOVE: [(0, 5), (t_press1, 5), (t_release1, 10), (t_reset, 10), (t_reset_end, 5)],
-        SLIDER_STEP: [(0, 10), (t_press2, 10), (t_release2, 15), (t_reset, 15), (t_reset_end, 10)],
+        "above": [(0, 5), (t_press1, 5), (t_release1, 10), (t_reset, 10), (t_reset_end, 5)],
+        "step": [(0, 10), (t_press2, 10), (t_release2, 15), (t_reset, 15), (t_reset_end, 10)],
     }
     times = [round(i / 50, 2) for i in range(int(T * 50) + 1)]
     thumbs = {}
-    for index, stops in paths.items():
-        s = base["sliders"][index]
+    for rule, stops in paths.items():
+        s = base["rules"][rule]
         tx, tw = s["track"]["x"], s["track"]["w"]
         cy = s["thumb"]["y"] + s["thumb"]["h"] / 2
         radius = s["thumb"]["w"] / 2
-        sidebar = pixel(tx - radius - 8, cy)
-        # the track line: colour and thickness from the screenshot, right of the thumb (empty part)
+        page_bg = pixel(tx - radius - 8, cy)
+        # the empty track: colour and thickness from the screenshot, right of the thumb
         right = tx + tw - 3
         rows = [d / px for d in range(int(-6 * px), int(6 * px) + 1)
-                if hex_color(shot["base"].getpixel((int(right * px), int(cy * px) + d))) != sidebar]
+                if hex_color(shot["base"].getpixel((int(right * px), int(cy * px) + d))) != page_bg]
         line_h = (max(rows) - min(rows) + 1 / px) if rows else 4.0
         line_y = cy + (max(rows) + min(rows)) / 2 if rows else cy
         empty = pixel(right, line_y)
-        label, ls = s["label"], s["label_style"]
+        bar_x = min(s["bar"]["x"], tx)
 
         def x_of(v: float, s=s, tx=tx, tw=tw) -> float:
             return tx + (v - s["min"]) / (s["max"] - s["min"]) * tw
 
-        y0, y1 = label["y"] - 2, s["thumb"]["y"] + s["thumb"]["h"] + 3
-        if s.get("title"):  # never cover the slider's own label above the value
-            y0 = max(y0, s["title"]["y"] + s["title"]["h"])
-        layers.append(f'<rect x="{(tx - radius - 6) * k:.2f}" y="{y0 * k:.2f}" '
-                      f'width="{(tw + 2 * radius + 12) * k:.2f}" height="{(y1 - y0) * k:.2f}" fill="{sidebar}"/>')
-        bar = (f'y="{(line_y - line_h / 2) * k:.2f}" width="{tw * k:.2f}" height="{line_h * k:.2f}" '
-               f'rx="{line_h * k / 2:.2f}"')
-        layers.append(f'<rect x="{tx * k:.2f}" {bar} fill="{empty}"/>')
+        y0, y1 = s["thumb"]["y"] - 3, s["thumb"]["y"] + s["thumb"]["h"] + 3
+        left = bar_x - radius - 6
+        layers.append(f'<rect x="{left * k:.2f}" y="{y0 * k:.2f}" width="{(tx + tw + radius + 6 - left) * k:.2f}" '
+                      f'height="{(y1 - y0) * k:.2f}" fill="{page_bg}"/>')
+        bar = (f'y="{(line_y - line_h / 2) * k:.2f}" height="{line_h * k:.2f}" rx="{line_h * k / 2:.2f}"')
+        full = tx + tw - bar_x
+        layers.append(f'<rect x="{bar_x * k:.2f}" width="{full * k:.2f}" {bar} fill="{empty}"/>')
         rest_x = x_of(stops[0][1])
         moving = [t for t in times if stops[1][0] <= t <= stops[2][0] or stops[3][0] <= t <= stops[4][0]]
         key_times = sorted({0.0, T, *[t for t, _ in stops], *moving})
-        fill = m.track("transform", [(t, f"scaleX({(x_of(path_value(stops, t)) - tx) / tw:.4f})", "linear")
-                                     for t in key_times], f"scaleX({(rest_x - tx) / tw:.4f})")
-        layers.append(f'<g transform="translate({tx * k:.2f} 0)"><rect class="{fill}" {bar} fill="{PRIMARY}"/></g>')
+        fill = m.track("transform", [(t, f"scaleX({(x_of(path_value(stops, t)) - bar_x) / full:.4f})", "linear")
+                                     for t in key_times], f"scaleX({(rest_x - bar_x) / full:.4f})")
+        layers.append(f'<g transform="translate({bar_x * k:.2f} 0)"><rect class="{fill}" width="{full * k:.2f}" '
+                      f'{bar} fill="{PRIMARY}"/></g>')
         move = m.track("transform", [(t, tr((x_of(path_value(stops, t)) - rest_x) * k, 0), "linear")
                                      for t in key_times], tr(0, 0))
-        # the value above the thumb: one text per whole value, shown while the dragged value rounds to it
+        ts = s["thumb_style"]
+        ring = ts["border_width"]
+        layers.append(f'<g class="{move}"><circle cx="{rest_x * k:.2f}" cy="{cy * k:.2f}" '
+                      f'r="{(radius - ring / 2) * k:.2f}" fill="{css_color(ts["background"])}" '
+                      f'stroke="{css_color(ts["border"])}" stroke-width="{ring * k:.2f}"/></g>')
+        # the value next to the label: one text per whole value, shown while the dragged value rounds to it
+        vb, vs = s["value"], s["value_style"]
+        values_range = range(min(v for _, v in stops), max(v for _, v in stops) + 1)
+        widest = max(geo["states"][n]["rules"][rule]["value"]["w"] for n in STATES)
+        vx1 = vb["x"] + vb["w"]
+        layers.append(f'<rect x="{(vx1 - widest - 6) * k:.2f}" y="{(vb["y"] - 1) * k:.2f}" '
+                      f'width="{(widest + 8) * k:.2f}" height="{(vb["h"] + 2) * k:.2f}" '
+                      f'fill="{pixel(vx1 - widest - 8, vb["y"] + 1)}"/>')
         labels = []
-        for value in range(min(v for _, v in stops), max(v for _, v in stops) + 1):
+        for value in values_range:
             on = [math.floor(path_value(stops, t) + 0.5) == value for t in times]  # exactly one value shown
             track_stops = [(0, int(on[0]), "linear")]
             for i in range(1, len(times)):
                 if on[i] != on[i - 1]:
                     track_stops += [(times[i] - 0.001, int(on[i - 1]), "linear"), (times[i], int(on[i]), "linear")]
             cls = m.track("opacity", track_stops, int(value == stops[0][1]))
-            text = f"+{value}%" if index == SLIDER_ABOVE else f"{value}%"
-            labels.append(f'<text class="{cls}" x="0" '
-                          f'y="{baseline(label, ls["size"]):.2f}" text-anchor="middle">{text}</text>')
-        layers.append(f'<g class="{move}"><circle cx="{rest_x * k:.2f}" cy="{cy * k:.2f}" r="{radius * k:.2f}" '
-                      f'fill="{PRIMARY}"/><g class="w{weight_of(ls)}" transform="translate({rest_x * k:.2f} 0)" '
-                      f'font-size="{ls["size"] * k:.2f}" fill="{css_color(ls["color"])}">{"".join(labels)}</g></g>')
-        thumbs[index] = lambda v, x_of=x_of, cy=cy: (x_of(v) * k, cy * k)
+            labels.append(f'<text class="{cls}" x="{vx1 * k:.2f}" y="{baseline(vb, vs["size"]):.2f}" '
+                          f'text-anchor="end">{rule_text(rule, value)}</text>')
+        layers.append(f'<g class="w{weight_of(vs)}" font-size="{vs["size"] * k:.2f}" '
+                      f'fill="{css_color(vs["color"])}">{"".join(labels)}</g>')
+        thumbs[rule] = lambda v, x_of=x_of, cy=cy: (x_of(v) * k, cy * k)
 
     # 4. the cursor: rest, the first thumb, drag, the second thumb, drag, away
-    rest = (W * 0.27, vh * 0.86)
-    grab1, grab2 = thumbs[SLIDER_ABOVE](5), thumbs[SLIDER_STEP](10)
+    rest = (W * 0.42, vh * 0.62)
+    grab1, grab2 = thumbs["above"](5), thumbs["step"](10)
     cursor_path = [(0, rest, "linear"), (t_move1, rest, EASE), (t_press1 - 0.15, grab1, "linear")]
-    cursor_path += [(t, thumbs[SLIDER_ABOVE](path_value(paths[SLIDER_ABOVE], t)), "linear")
+    cursor_path += [(t, thumbs["above"](path_value(paths["above"], t)), "linear")
                     for t in times if t_press1 <= t <= t_release1]
-    cursor_path += [(t_move2, thumbs[SLIDER_ABOVE](10), EASE), (t_press2 - 0.15, grab2, "linear")]
-    cursor_path += [(t, thumbs[SLIDER_STEP](path_value(paths[SLIDER_STEP], t)), "linear")
+    cursor_path += [(t_move2, thumbs["above"](10), EASE), (t_press2 - 0.15, grab2, "linear")]
+    cursor_path += [(t, thumbs["step"](path_value(paths["step"], t)), "linear")
                     for t in times if t_press2 <= t <= t_release2]
-    cursor_path += [(t_away, thumbs[SLIDER_STEP](15), EASE), (t_away + 1.2, rest, "linear")]
+    cursor_path += [(t_away, thumbs["step"](15), EASE), (t_away + 1.2, rest, "linear")]
     cursor_move = m.track("transform", [(t, tr(*xy), e) for t, xy, e in cursor_path], tr(*rest))
     cursor_show = m.track("opacity", [(0, 1, "linear")], 0)
     press = [(0, "scale(1)", "linear")]
@@ -491,20 +481,19 @@ def build(shots: Path, quality: int) -> tuple[dict[str, str], float, dict]:
         layers.append(f'<g transform="translate({x:.1f} {y:.1f})"><g class="{fade}"><circle class="{ring}" r="18" '
                       f'fill="{PRIMARY}" fill-opacity="0.35"/></g></g>')
     layers.append(f'<g class="{cursor_show}"><g class="{cursor_move}"><g class="{cursor_press}">'
-                  f'<path d="{CURSOR}" transform="scale(1.15)" fill="#14232a" stroke="#ffffff" stroke-width="1.3" '
+                  f'<path d="{CURSOR}" transform="scale(1.15)" fill="{look.INK}" stroke="#ffffff" stroke-width="1.3" '
                   f'stroke-linejoin="round" filter="url(#shadow)"/></g></g></g>')
 
     first, last = values["base"], values["bold"]
     alt = (f"Pricing Engine app, illustrated: the competitor limit is dragged from +5% to +10% and the largest price "
            f"step from 10% to 15%; yearly gross profit moves from {first['profit']} PLN ({first['profit_delta']}) "
-           f"to {last['profit']} PLN ({last['profit_delta']}) and the proposals table updates.")
-    css = (face
-           + "".join(m.css) + "@media (prefers-reduced-motion:reduce){*{animation:none!important}}")
+           f"to {last['profit']} PLN ({last['profit_delta']}).")
+    css = (face + "".join(m.css) + "@media (prefers-reduced-motion:reduce){*{animation:none!important}}")
     page = "".join(layers)
     out = {}
     for theme, c in FRAMES.items():
         dots = "".join(f'<circle cx="{18 + i * 16}" cy="{BAR / 2}" r="5" fill="{c["dot"]}"/>' for i in range(3))
-        host, pill_w = "127.0.0.1:8501", 150
+        host, pill_w = "127.0.0.1:8050", 150
         out[theme] = (
             f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H:.0f}" width="{W}" height="{H:.0f}" '
             f'role="img" aria-label="{alt}"><title>{alt}</title><defs><style>{css}</style>'

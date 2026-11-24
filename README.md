@@ -25,11 +25,11 @@ elasticity estimate hits the truth in 12 of 15 categories.
 <!-- generated:hero -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">
-  <img alt="The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%; yearly gross profit moves from PLN 8.09M (+2.9%) to PLN 8.40M (+6.9%) and the proposals table updates" src="docs/img/app-demo.svg">
+  <img alt="The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the largest step from 10% to 15%; yearly gross profit moves from PLN 8.09M (+2.9%) to PLN 8.40M (+6.9%), with revenue, units and the profit with the true elasticity" src="docs/img/app-demo.svg">
 </picture>
 <!-- /generated:hero -->
 
-**Stack:** Python · pandas · DuckDB · SQL · SciPy · matplotlib · Streamlit · pytest
+**Stack:** Python · pandas · DuckDB · SQL · SciPy · Dash · Mantine · Plotly · matplotlib · pytest
 
 <!-- generated:summary -->
 - **What worked:** the profit predicted from the data (+2.9%) is 0.1 points from the profit with the true elasticity
@@ -171,14 +171,15 @@ competitor limit cost more than the extra sales bring.
 
 ## 6. The app: rules on sliders
 
-The Streamlit app shows the engine at work (the animation at the top of the page). On the left are the rule sliders:
-minimum margin, the limit over the competitor median, the largest step and caution, the number of standard errors
-added to the elasticity (as in the cautious scenario). Every change recalculates yearly profit, revenue, units and the
-profit with the true elasticity. The "Proposals" tab lists the proposals with their reasons and a CSV download,
-"Categories" shows the profit change per category and the rules that decided, and "Elasticity" puts the estimate next
-to the truth.
+The app (Dash and Mantine, in the same look as Data-Generator) shows the engine at work (the animation at the top
+of the page). Section 01 holds the rule sliders: minimum margin, the limit over the competitor median, the largest
+step and caution, the number of standard errors added to the elasticity (as in the cautious scenario), plus a
+category filter. Every change recalculates yearly profit, revenue, units and the profit with the true elasticity in
+section 02. "Proposals" lists the proposals with their reasons and a CSV download, "Categories" shows the profit
+change per category and the rules that decided, and "Elasticity" puts the estimate next to the truth. The address
+keeps the rules, so `/?above=10&step=15` opens the app with a limit of +10% and a largest step of 15%.
 
-![The app: pricing rules on sliders on the left, yearly profit, revenue and units after the change, and the list of proposals with the reason for each price](docs/img/app.png)
+![The app: pricing rules on sliders, yearly profit, revenue and units after the change, and the list of proposals with the reason for each price](docs/img/app.png)
 
 ## 7. Analysis against the truth
 
@@ -278,8 +279,8 @@ sample proposals and the scenarios, and saves CSV files and `summary.json` to `o
 
 ### App
 
-`streamlit run app/streamlit_app.py` opens the app at http://127.0.0.1:8501 (this computer only). The first load takes
-a few seconds; Ctrl+C in the terminal stops it.
+`python -m ui.app` starts the app; open http://127.0.0.1:8050 in your browser (this computer only). The first load
+takes a few seconds while the elasticity is estimated; Ctrl+C in the terminal stops it.
 
 ## Data
 
@@ -332,14 +333,15 @@ src/pricing_engine/
   report.py                     the five headline numbers shown in the app and the animation
   theme.py                      colours and font of the portfolio look, shared by the app and the charts
   mock_competitors.py           competitor table for tests and releases before v1.5.0
-app/streamlit_app.py            the app (theme in .streamlit/config.toml)
-app/static/fonts/               Inter, served by the app itself (SIL Open Font License)
+ui/app.py                       the app: layout and callbacks (Dash, Mantine)
+ui/figures.py                   the app's Plotly charts
+ui/assets/                      style sheet, Inter font files (SIL Open Font License), live slider values
 notebooks/01-pricing-engine.ipynb   the whole project step by step
 scripts/get_data.py             clones and runs Data-Generator
 scripts/make_charts.py          README charts and numbers (readme_blocks.py)
 scripts/make_demo_svg.py        the animated app demo at the top (called by make_charts.py)
 scripts/screenshot_app.py       app screenshot for the README
-scripts/inter_font.py           Inter for the charts and the demo, the tabular digits face
+scripts/inter_font.py           Inter for the README charts and the demo, with tabular digits
 tests/                          pytest
 ```
 
@@ -358,7 +360,7 @@ without them it is skipped, as in CI.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The Inter typeface in `app/static/fonts/` is under the SIL Open Font License 1.1
-([OFL-inter.txt](app/static/fonts/OFL-inter.txt)). [Changelog](CHANGELOG.md).
+MIT, see [LICENSE](LICENSE). The Inter typeface in `ui/assets/fonts/` is under the SIL Open Font License 1.1
+([OFL-inter.txt](ui/assets/fonts/OFL-inter.txt)). [Changelog](CHANGELOG.md).
 
 README last updated: 2026-11-24

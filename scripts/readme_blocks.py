@@ -66,12 +66,12 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             alt = (f"Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok "
                    f"z 10% na 15%; roczny zysk brutto rośnie z {money(first['profit'])} "
                    f"({pct(first['profit_change'])}) do {money(last['profit'])} ({pct(last['profit_change'])}), "
-                   f"a tabela propozycji się odświeża")
+                   f"a obrót, sprzedane sztuki i zysk przy prawdziwej elastyczności zmieniają się razem z nim")
         else:
             alt = (f"The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the "
                    f"largest step from 10% to 15%; yearly gross profit moves from {money(first['profit'])} "
-                   f"({pct(first['profit_change'])}) to {money(last['profit'])} ({pct(last['profit_change'])}) and "
-                   f"the proposals table updates")
+                   f"({pct(first['profit_change'])}) to {money(last['profit'])} ({pct(last['profit_change'])}), "
+                   f"with revenue, units and the profit with the true elasticity")
         out["hero"] = ('<picture>\n'
                        '  <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">\n'
                        f'  <img alt="{alt}" src="docs/img/app-demo.svg">\n'

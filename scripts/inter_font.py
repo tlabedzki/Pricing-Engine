@@ -1,13 +1,9 @@
 """
-Inter, the portfolio typeface, from the files in app/static/fonts/ (SIL Open Font License, OFL-inter.txt there).
+Inter, the portfolio typeface, from the files the app serves (ui/assets/fonts/, SIL Open Font License, OFL-inter.txt).
 
-    python scripts/inter_font.py    # rebuild app/static/fonts/inter-digits-tnum-wght-normal.woff2
-
-The app gets Inter from those files through [[theme.fontFaces]] in .streamlit/config.toml, no font service. The
-proposals table and the charts draw on a canvas, where CSS font-feature-settings do not reach, so the digits come
-from a small extra face: Inter's tabular digits (zero.tf ... nine.tf) mapped to 0-9, served for U+0030-0039 only.
-Every digit in the app is then tabular, also on the canvas. The README charts (matplotlib) and the animated demo use
-static instances of the same files with the same tabular digits. Needs fontTools and brotli (requirements-dev.txt).
+The README charts (matplotlib) and the animated demo use static instances of the same files, with Inter's tabular
+digits (zero.tf ... nine.tf) mapped to 0-9, so their numbers line up like the app's ('tnum' in ui/assets/style.css).
+Needs fontTools and brotli (requirements-dev.txt).
 """
 from __future__ import annotations
 
@@ -20,10 +16,9 @@ from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
 ROOT = Path(__file__).resolve().parents[1]
-FONTS = ROOT / "app" / "static" / "fonts"
+FONTS = ROOT / "ui" / "assets" / "fonts"
 LATIN = FONTS / "inter-latin-wght-normal.woff2"
 LATIN_EXT = FONTS / "inter-latin-ext-wght-normal.woff2"
-DIGITS = FONTS / "inter-digits-tnum-wght-normal.woff2"
 CACHE = ROOT / ".cache" / "fonts"
 DIGIT_NAMES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 
@@ -54,11 +49,6 @@ def subset_font(font: TTFont, text: str) -> TTFont:
     sub.populate(text=text)
     sub.subset(font)
     return font
-
-
-def build_digits() -> bytes:
-    """The variable digit face (weights 100-900) for U+0030-0039."""
-    return save_woff2(subset_font(tabular_digits(TTFont(LATIN)), "0123456789"))
 
 
 @cache
@@ -93,7 +83,3 @@ def embedded_face(family: str, weight: int, text: str) -> tuple[str, TTFont]:
     data = base64.b64encode(save_woff2(font)).decode()
     return f"@font-face{{font-family:{family};src:url(data:font/woff2;base64,{data}) format('woff2')}}", font
 
-
-if __name__ == "__main__":
-    DIGITS.write_bytes(build_digits())
-    print(f"Saved {DIGITS.relative_to(ROOT)} ({DIGITS.stat().st_size / 1024:.1f} KB)")

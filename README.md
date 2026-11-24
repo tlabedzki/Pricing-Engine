@@ -6,15 +6,15 @@
 [![Release](https://img.shields.io/github/v/release/tlabedzki/Pricing-Engine)](https://github.com/tlabedzki/Pricing-Engine/releases)
 
 Silnik propozycji cen dla fikcyjnego sklepu internetowego: nowa cena każdego produktu z powodem zapisanym zdaniem
-i rachunkiem zysku, sprawdzonym z kluczem odpowiedzi.
+i rachunkiem zysku, sprawdzonym kluczem odpowiedzi.
 
 **Problem.** Sklep ma dziesiątki tysięcy produktów i ceny ustawione raz, „z marżą”. Nie wie, gdzie cena jest za
 niska i oddaje zysk, a gdzie za wysoka i traci klientów na rzecz konkurencji. Obniżka „na wszelki wypadek” zjada
 marżę, a podwyżka bez rachunku może zjeść sprzedaż.
 
-**Podejście.** Z historii cen i sprzedaży projekt szacuje, jak mocno popyt reaguje na cenę w każdej kategorii.
-Potem w granicach reguł (minimalna marża, próg względem konkurencji, maksymalny krok) wybiera cenę o najwyższym
-oczekiwanym zysku. Dane mają klucz odpowiedzi, więc wynik da się sprawdzić.
+**Podejście.** Z historii cen i sprzedaży projekt szacuje, jak mocno popyt reaguje na cenę w każdej kategorii
+(elastyczność ceny). Potem w granicach reguł (minimalna marża, próg względem konkurencji, maksymalny krok) wybiera cenę
+o najwyższym oczekiwanym zysku. Dane mają klucz odpowiedzi, więc wynik da się sprawdzić.
 
 <!-- generated:result -->
 **Wynik.** Silnik proponuje nową cenę dla 42 748 produktów; w scenariuszu bazowym roczny zysk brutto rośnie o +2,6% przy
@@ -29,9 +29,9 @@ prawdę w 12 z 15 kategorii.
 <!-- generated:summary -->
 - **Trafione:** zysk przewidziany z danych (+2,6%) różni się od zysku przy prawdziwej elastyczności (+2,7%) o 0,1 pkt
   proc.; rabaty i zmiany cen razem dają średni błąd elastyczności 0,12.
-- **Chybione:** w 3 kategoriach prawda leży poza 90% przedziałem: Zdrowie (0,47 zamiast 0,60), Książki i media (0,85
-  zamiast 1,00), Elektronika (1,83 zamiast 1,60); 24% produktów zostaje ponad progiem konkurencji, bo jeden krok to za
-  mało albo nie pozwala na to minimalna marża.
+- **Chybione:** w 3 kategoriach prawda leży poza przedziałem szacunku: Zdrowie (0,47 zamiast 0,60), Książki i media
+  (0,85 zamiast 1,00), Elektronika (1,83 zamiast 1,60); 24% produktów zostaje ponad progiem konkurencji, bo jeden krok
+  to za mało albo nie pozwala na to minimalna marża.
 <!-- /generated:summary -->
 
 ## 1. Sklep Lumo i pytanie o ceny
@@ -69,10 +69,10 @@ wynikiem z danych (więcej w rozdziale 8).
 
 **Pytanie.** O ile spadnie sprzedaż w kategorii, gdy cena wzrośnie o 1%?
 
-**Co robi analiza.** Elastyczność niesie w danych dwa sygnały. Pierwszy to zmiany cen katalogowych: po podwyżce
-produkt dostaje mniejszą część zamówień kategorii. Model porównuje okresy cen tego samego produktu (warunkowy
-model Poissona dla liczby zamówień), więc popularność produktu się skraca. Okresy waży ruchem w kategorii
-(zapytanie SQL w DuckDB). Drugi sygnał to rabaty: linia zamówienia z rabatem ma więcej sztuk. Oba szacunki łączy
+**Co robi analiza.** Elastyczność niesie w danych dwa sygnały. Pierwszy to zmiany cen katalogowych: po podwyżce produkt
+dostaje mniejszą część zamówień kategorii. Model porównuje okresy cen tego samego produktu (warunkowy model Poissona dla
+liczby zamówień), więc popularność produktu nie zmienia wyniku. Każdy okres liczy się według ruchu w kategorii w jego
+dniach (zapytanie SQL w DuckDB). Drugi sygnał to rabaty: linia zamówienia z rabatem ma więcej sztuk. Oba szacunki łączy
 średnia ważona ich dokładnością, a kategorie z małą sprzedażą są przyciągane do średniej wszystkich kategorii
 (empiryczny Bayes).
 
@@ -98,12 +98,13 @@ sprzedaje się kilka razy w roku. Rabaty niosą znacznie mocniejszy sygnał, wi�
 
 **Pytanie.** Którą cenę ustawić, żeby zarobić więcej i nie odjechać od konkurencji?
 
-**Co robi analiza.** Dla każdego produktu w sprzedaży silnik sprawdza ceny kończące się na 9 w zakresie ±30%
-od dzisiejszej. Odrzuca te, które łamią reguły: marża netto po średnim rabacie co najmniej 15%, najwyżej 5%
-nad medianą cen konkurencji i najwyżej 10% zmiany naraz. Z pozostałych wybiera cenę o najwyższym oczekiwanym
-zysku brutto. Popyt przy nowej cenie liczy z elastyczności kategorii. Do propozycji dopisuje regułę, która
-zatrzymała cenę, i powód zdaniem, np. „Raise 9.6%, the largest step allowed (10%): 13% below the competitor
-median, demand in Electronics reacts strongly to price (elasticity 1.8)”.
+**Co robi analiza.** Pozycję produktu na rynku mierzy indeks ceny: nasza cena podzielona przez medianę cen konkurencji
+(1,05 to 5% drożej). Dla każdego produktu w sprzedaży silnik sprawdza ceny kończące się na 9 w zakresie ±30% od
+dzisiejszej. Odrzuca te, które łamią reguły: marża netto po średnim rabacie co najmniej 15%, najwyżej 5% nad medianą cen
+konkurencji i najwyżej 10% zmiany naraz. Z pozostałych wybiera cenę o najwyższym oczekiwanym zysku brutto. Popyt przy
+nowej cenie liczy z elastyczności kategorii. Do propozycji dopisuje regułę, która zatrzymała cenę, i powód zdaniem, np.
+„Raise 9.6%, the largest step allowed (10%): 13% below the competitor median, demand in Electronics reacts strongly to
+price (elasticity 1.8)”.
 
 **Jak to sprawdzamy.** Testy sprawdzają, że żadna propozycja nie łamie reguł. Wyjątek to konflikt: gdy minimalna
 marża wymaga ceny ponad progiem konkurencji, wygrywa marża, a powód to mówi.
@@ -130,8 +131,10 @@ do progu wymaga kilku rund zmian.
 
 **Pytanie.** O ile zmieni się roczny zysk brutto, obrót i liczba sprzedanych sztuk?
 
-**Co robi analiza.** Sprzedaż produktu z ostatnich 12 miesięcy, uśredniona ze średnią kategorii dla produktów
-z małą sprzedażą, to punkt wyjścia. Silnik przelicza ją na nowe ceny w trzech scenariuszach reguł. Potem losuje
+**Co robi analiza.** Punktem wyjścia jest sprzedaż produktu z ostatnich 12 miesięcy. Produkt, który sprzedał się
+tylko kilka razy, dostaje do tego średnią swojej kategorii. Silnik przelicza sprzedaż na nowe ceny w trzech
+scenariuszach reguł. Ostrożny zakłada popyt bardziej wrażliwy na cenę: elastyczność większą o 1,64 błędu
+standardowego (miary niepewności szacunku), czyli górną granicę 90% przedziału. Na koniec silnik losuje
 elastyczność z jej przedziałów 1000 razy, żeby pokazać, jak niepewny jest wynik.
 
 **Jak to sprawdzamy.** Te same propozycje przeliczamy z prawdziwą elastycznością z Data-Generatora i porównujemy
@@ -161,11 +164,11 @@ niż daje dodatkowa sprzedaż.
 
 ## 6. Aplikacja: reguły na suwakach
 
-Aplikacja Streamlit pokazuje silnik w działaniu (zrzut na górze strony). Z lewej są suwaki reguł: minimalna marża,
-próg nad medianą konkurencji, maksymalny krok i ostrożność, czyli o ile błędów standardowych przyjąć popyt bardziej
-wrażliwy na cenę. Po każdej zmianie przelicza się roczny zysk, obrót, sztuki i zysk przy prawdziwej elastyczności.
-Zakładka „Proposals” to lista propozycji z powodem i pobieraniem CSV, „Categories” to zmiana zysku w kategoriach
-i reguły, które zdecydowały, a „Elasticity” to szacunek obok prawdy.
+Aplikacja Streamlit pokazuje silnik w działaniu (zrzut na górze strony). Z lewej są suwaki reguł: minimalna marża, próg
+nad medianą konkurencji, maksymalny krok i ostrożność, czyli o ile błędów standardowych zwiększyć elastyczność (jak w
+scenariuszu ostrożnym). Po każdej zmianie przelicza się roczny zysk, obrót, sztuki i zysk przy prawdziwej elastyczności.
+Zakładka „Proposals” to lista propozycji z powodem i pobieraniem CSV, „Categories” to zmiana zysku w kategoriach i
+reguły, które zdecydowały, a „Elasticity” to szacunek obok prawdy.
 
 ## 7. Analiza kontra prawda
 

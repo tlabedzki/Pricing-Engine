@@ -63,7 +63,7 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"prawdziwej elastyczności ({pct(truth['profit_change'])}) o "
             f"{n(abs(base['profit_change'] - truth['profit_change']) * 100, 1)} pkt proc.; rabaty i zmiany cen razem "
             f"dają średni błąd elastyczności {n(mae['elasticity'], 2)}.\n"
-            f"- **Chybione:** w {len(misses)} kategoriach prawda leży poza 90% przedziałem: {miss_list()}; "
+            f"- **Chybione:** w {len(misses)} kategoriach prawda leży poza przedziałem szacunku: {miss_list()}; "
             f"{pct(1 - within_after, 0, sign=False)} produktów zostaje ponad "
             f"progiem konkurencji, bo jeden krok to za mało albo nie pozwala na to minimalna marża.")
         out["elasticity"] = (
@@ -127,7 +127,8 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
             f"{n(abs(base['profit_change'] - truth['profit_change']) * 100, 1)} points from the profit with the true "
             f"elasticity ({pct(truth['profit_change'])}); discounts and list-price changes together give a mean "
             f"elasticity error of {n(mae['elasticity'], 2)}.\n"
-            f"- **What missed:** in {len(misses)} categories the truth lies outside the 90% interval: {miss_list()}; "
+            f"- **What missed:** in {len(misses)} categories the truth lies outside the estimate's interval: "
+            f"{miss_list()}; "
             f"{pct(1 - within_after, 0, sign=False)} of products stay above the competitor limit, because one step "
             f"is not enough or the minimum margin does not allow it.")
         out["elasticity"] = (

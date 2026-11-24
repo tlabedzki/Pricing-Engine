@@ -56,6 +56,26 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
                          f"{n(t.loc[c, 'true_elasticity'], 2)})" for c in misses)
 
     out: dict[str, str] = {}
+    if "demo" in facts:
+        first, last = facts["demo"]["base"], facts["demo"]["bold"]
+
+        def money(text: str) -> str:
+            return f"{n(float(text[:-1]), 2)} mln zł" if pl else f"PLN {text}"
+
+        if pl:
+            alt = (f"Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok "
+                   f"z 10% na 15%; roczny zysk brutto rośnie z {money(first['profit'])} "
+                   f"({pct(first['profit_change'])}) do {money(last['profit'])} ({pct(last['profit_change'])}), "
+                   f"a tabela propozycji się odświeża")
+        else:
+            alt = (f"The app, animated: the cursor drags the limit over the competitor median from +5% to +10% and the "
+                   f"largest step from 10% to 15%; yearly gross profit moves from {money(first['profit'])} "
+                   f"({pct(first['profit_change'])}) to {money(last['profit'])} ({pct(last['profit_change'])}) and "
+                   f"the proposals table updates")
+        out["hero"] = ('<picture>\n'
+                       '  <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">\n'
+                       f'  <img alt="{alt}" src="docs/img/app-demo.svg">\n'
+                       '</picture>')
     if pl:
         out["result"] = (
             f"**Wynik.** Silnik sprawdza ceny {n(total)} produktów i zmienia {n(changed)} z nich; w scenariuszu "

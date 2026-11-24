@@ -16,12 +16,13 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pricing_engine import data, elasticity, engine, simulate  # noqa: E402
+from pricing_engine import data, elasticity, engine, report, simulate  # noqa: E402
 
 BLUE, ORANGE, RED, KEEP, INK_2 = "#2a78d6", "#eb6834", "#e34948", "#b5b3ab", "#52514e"
 ACTION_COLORS = alt.Scale(domain=["raise", "lower", "keep"], range=[BLUE, ORANGE, KEEP])
 
 st.set_page_config(page_title="Pricing Engine", layout="wide")
+st.markdown("<style>.block-container {padding-top: 2.5rem}</style>", unsafe_allow_html=True)
 
 
 @st.cache_data(show_spinner="Estimating price elasticity from the shop data…")
@@ -31,10 +32,12 @@ def prepare():
     return shop.truth.get("source", {}), table, engine.snapshot(shop, table), shop.true_elasticity()
 
 
-def pct(value: float, decimals: int = 1) -> str:
-    if round(value * 100, decimals) == 0:
-        return f"{0:.{decimals}f}%"
-    return f"{value * 100:+.{decimals}f}%"
+def start(name: str, default: float, low: float, high: float) -> float:
+    """Starting slider value from the address (?above=10&step=15), so a set of rules can be shared as a link."""
+    try:
+        return min(max(float(st.query_params.get(name, default)), low), high)
+    except ValueError:
+        return default
 
 
 try:
@@ -45,11 +48,13 @@ except FileNotFoundError as error:
 
 with st.sidebar:
     st.header("Pricing rules")
-    min_margin = st.slider("Minimum margin", 0, 40, 15, 1, format="%d%%",
+    min_margin = st.slider("Minimum margin", 0, 40, int(start("margin", 15, 0, 40)), 1, format="%d%%",
                            help="Lowest gross margin of the net price after the average discount") / 100
-    above = st.slider("At most above the competitor median", 0, 20, 5, 1, format="+%d%%") / 100
-    step = st.slider("Largest price change at once", 2, 20, 10, 1, format="%d%%") / 100
-    caution = st.slider("Caution: demand more sensitive by", 0.0, 2.0, 0.0, 0.25, format="%.2f SE",
+    above = st.slider("At most above the competitor median", 0, 20, int(start("above", 5, 0, 20)), 1,
+                      format="+%d%%") / 100
+    step = st.slider("Largest price change at once", 2, 20, int(start("step", 10, 2, 20)), 1, format="%d%%") / 100
+    caution = st.slider("Caution: demand more sensitive by", 0.0, 2.0, start("caution", 0.0, 0.0, 2.0), 0.25,
+                        format="%.2f SE",
                         help="Standard errors added to each category's estimated elasticity")
     categories = st.multiselect("Categories", sorted(snap["category"].unique()), placeholder="All categories")
     st.caption(f"Data: Lumo, a fictional shop from Data-Generator {source.get('tag', '')} (seed "
@@ -58,23 +63,21 @@ with st.sidebar:
 rules = engine.Rules(min_margin=min_margin, max_above_market=above, max_step=step, elasticity_shift=caution)
 view = snap if not categories else snap[snap["category"].isin(categories)]
 proposals = engine.propose(view, rules)
-total = simulate.totals(proposals).iloc[0]
-checked = simulate.totals(simulate.evaluate(proposals, truth)).iloc[0]
+numbers = report.kpis(proposals, truth)
 
 st.title("Pricing Engine")
 st.write("Price proposals for every product from the estimated price elasticity, competitor prices and your rules. "
-         "Move the rules on the left; the yearly effect updates at once.")
+         "Move the rules on the left; the effect on a year of sales updates at once.")
 
 kpi = st.columns(5)
-kpi[0].metric("Gross profit a year, PLN", f"{total['profit_after'] / 1e6:.2f}M", pct(total["profit_change"]))
-kpi[1].metric("Net revenue a year, PLN", f"{total['revenue_after'] / 1e6:.2f}M", pct(total["revenue_change"]))
-kpi[2].metric("Units a year", f"{total['units_after']:,.0f}", pct(total["units_change"]))
-kpi[3].metric("Prices raised", f"{total['raise'] / 1000:.1f}k", f"{total['lower'] / 1000:.1f}k lowered",
-              delta_color="off", delta_arrow="off",
-              help=f"{int(total['raise']):,} prices raised, {int(total['lower']):,} lowered, "
-                   f"{int(total['keep']):,} kept")
-kpi[4].metric("Profit, true elasticity", pct(checked["profit_change"]),
-              help="The same proposals judged with Data-Generator's true elasticity: the check a real shop never has")
+kpi[0].metric("Gross profit, PLN", numbers["profit"], numbers["profit_delta"])
+kpi[1].metric("Net revenue, PLN", numbers["revenue"], numbers["revenue_delta"])
+kpi[2].metric("Units sold", numbers["units"], numbers["units_delta"])
+kpi[3].metric("Prices raised", numbers["raised"], numbers["raised_delta"], delta_color="off", delta_arrow="off",
+              help=f"{numbers['raise']:,} prices raised, {numbers['lower']:,} lowered, {numbers['keep']:,} kept")
+kpi[4].metric("True elasticity", numbers["truth"],
+              help="Gross profit change of the same proposals judged with Data-Generator's true elasticity: "
+                   "the check a real shop never has")
 
 tab_products, tab_categories, tab_elasticity = st.tabs(["Proposals", "Categories", "Elasticity"])
 

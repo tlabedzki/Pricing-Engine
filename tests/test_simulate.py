@@ -94,3 +94,14 @@ def test_command_line_without_data_says_what_to_run(tmp_path):
                             capture_output=True, text=True)
     assert result.returncode != 0
     assert "get_data.py" in result.stderr
+
+
+def test_headline_numbers_are_formatted_like_the_app(setup):
+    from pricing_engine import report
+
+    shop, _, snap = setup
+    numbers = report.kpis(engine.propose(snap), shop.true_elasticity())
+    assert numbers["profit"].endswith("M") and numbers["raised"].endswith("k")
+    assert numbers["profit_delta"][0] in "+-0"
+    assert numbers["raised_delta"].endswith(" lowered")
+    assert report.pct(0.0004) == "0.0%" and report.pct(-0.0123) == "-1.2%" and report.pct(0.05) == "+5.0%"

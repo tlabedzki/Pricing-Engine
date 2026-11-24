@@ -22,7 +22,12 @@ rośnie o +2,6% przy −0,5% obrotu. Przeliczenie tych samych cen z prawdziwą e
 elastyczności trafia w prawdę w 12 z 15 kategorii.
 <!-- /generated:result -->
 
-![Aplikacja: reguły cenowe na suwakach z lewej, roczny zysk, obrót i sztuki po zmianie oraz lista propozycji z powodem zmiany ceny](docs/img/app.png)
+<!-- generated:hero -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/app-demo-dark.svg">
+  <img alt="Animacja aplikacji: kursor przesuwa próg nad medianą konkurencji z +5% na +10% i maksymalny krok z 10% na 15%; roczny zysk brutto rośnie z 8,06 mln zł (+2,6%) do 8,37 mln zł (+6,5%), a tabela propozycji się odświeża" src="docs/img/app-demo.svg">
+</picture>
+<!-- /generated:hero -->
 
 **Stack:** Python · pandas · DuckDB · SQL · SciPy · matplotlib · Streamlit · pytest
 
@@ -164,11 +169,13 @@ niż daje dodatkowa sprzedaż.
 
 ## 6. Aplikacja: reguły na suwakach
 
-Aplikacja Streamlit pokazuje silnik w działaniu (zrzut na górze strony). Z lewej są suwaki reguł: minimalna marża, próg
+Aplikacja Streamlit pokazuje silnik w działaniu (animacja na górze strony). Z lewej są suwaki reguł: minimalna marża, próg
 nad medianą konkurencji, maksymalny krok i ostrożność, czyli o ile błędów standardowych zwiększyć elastyczność (jak w
 scenariuszu ostrożnym). Po każdej zmianie przelicza się roczny zysk, obrót, sztuki i zysk przy prawdziwej elastyczności.
 Zakładka „Proposals” to lista propozycji z powodem i pobieraniem CSV, „Categories” to zmiana zysku w kategoriach i
 reguły, które zdecydowały, a „Elasticity” to szacunek obok prawdy.
+
+![Aplikacja: reguły cenowe na suwakach z lewej, roczny zysk, obrót i sztuki po zmianie oraz lista propozycji z powodem zmiany ceny](docs/img/app.png)
 
 ## 7. Analiza kontra prawda
 
@@ -319,11 +326,13 @@ src/pricing_engine/
   elasticity.py                 elasticity from list prices and discounts, combined and shrunk
   engine.py                     rules, profit-optimal prices ending in 9, reasons
   simulate.py                   scenarios, uncertainty, check with the true elasticity
+  report.py                     the five headline numbers shown in the app and the animation
   mock_competitors.py           competitor table for tests and releases before v1.5.0
 app/streamlit_app.py            the app
 notebooks/01-pricing-engine.ipynb   the whole project step by step
 scripts/get_data.py             clones and runs Data-Generator
 scripts/make_charts.py          README charts and numbers (readme_blocks.py)
+scripts/make_demo_svg.py        the animated app demo at the top (called by make_charts.py)
 scripts/screenshot_app.py       app screenshot for the README
 tests/                          pytest
 ```
@@ -337,7 +346,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-49 testów (ok. 20 s) sprawdza estymatory na danych ze znaną elastycznością, reguły silnika na losowych produktach,
+50 testów (ok. 20 s) sprawdza estymatory na danych ze znaną elastycznością, reguły silnika na losowych produktach,
 symulację, tabelę konkurencji, wiersz poleceń i aplikację. Test aplikacji wymaga danych z `get_data.py`; bez nich
 jest pomijany, tak jak w CI.
 

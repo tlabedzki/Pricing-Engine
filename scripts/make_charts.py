@@ -4,8 +4,9 @@ Render the README charts to docs/img/ and write the README numbers between its `
     python scripts/make_charts.py              # Polish notation (README of the private repo)
     python scripts/make_charts.py --lang en    # English notation, for the public release
 
-Needs the data from scripts/get_data.py. Charts use the light palette of the dataviz skill on a solid white background,
-so they look the same in GitHub's light and dark themes. Two runs give the same bytes.
+Needs the data from scripts/get_data.py. Also rebuilds the animated hero (scripts/make_demo_svg.py, which starts the
+app for its screenshots) unless --demo reuse or --demo skip. Charts use the light palette of the dataviz skill on a
+solid white background, so they look the same in GitHub's light and dark themes. Two runs give the same bytes.
 """
 from __future__ import annotations
 
@@ -305,7 +306,7 @@ def wrap(body: str, width: int = 120) -> str:
     """Wrap prose and list items at `width`; tables, images and blank lines stay as they are."""
     lines = []
     for line in body.split("\n"):
-        if not line or line.startswith(("|", "![")) or len(line) <= width:
+        if not line or line.lstrip().startswith(("|", "![", "<")) or len(line) <= width:
             lines.append(line)
         elif line.startswith("- "):
             lines.extend(textwrap.wrap(line, width, subsequent_indent="  ", break_on_hyphens=False)
@@ -331,6 +332,8 @@ def replace_blocks(blocks: dict[str, str]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--lang", choices=["pl", "en"], default="pl")
+    parser.add_argument("--demo", choices=["shoot", "reuse", "skip"], default="shoot",
+                        help="the animated hero: new screenshots of the app (default), the last ones, or none")
     args = parser.parse_args()
     text, fmt = TEXT[args.lang], Format(args.lang)
     style()
@@ -350,11 +353,13 @@ def main() -> None:
     facts["rules"] = chart_rules(proposals, text, fmt)
     chart_scenarios(frame, float(truth["profit_change"]), text, fmt)
     facts["categories"] = chart_categories(by_category, text, fmt)
+    if args.demo != "skip":
+        import make_demo_svg  # scripts/ is on sys.path when this file runs
 
-    try:
-        from readme_blocks import blocks  # scripts/ is on sys.path when this file runs
-    except ImportError:
-        return
+        facts["demo"] = make_demo_svg.make(reuse=args.demo == "reuse")
+
+    from readme_blocks import blocks  # scripts/ is on sys.path when this file runs
+
     replace_blocks(blocks(args.lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_category, facts))
     print(f"Saved {len(list(IMG.glob('*.png')))} charts to docs/img/ and the README numbers ({args.lang})")
 

@@ -371,7 +371,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-67 tests (about 15 s) check the estimators on data with a known elasticity, the engine's rules on random products, the
+68 tests (about 15 s) check the estimators on data with a known elasticity, the engine's rules on random products, the
 simulation, the competitor table, the command line and the app. The app test needs the data from `get_data.py`;
 without them it is skipped, as in CI.
 

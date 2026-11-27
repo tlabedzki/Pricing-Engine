@@ -374,7 +374,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-67 testów (około 15 s) sprawdza estymatory na danych o znanej elastyczności, reguły silnika na losowych produktach,
+68 testów (około 15 s) sprawdza estymatory na danych o znanej elastyczności, reguły silnika na losowych produktach,
 symulację, tabelę konkurencji, wiersz poleceń i aplikację. Test aplikacji potrzebuje danych z `get_data.py`; bez nich
 jest pomijany, tak jak w CI.
 

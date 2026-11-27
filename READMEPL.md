@@ -1,11 +1,10 @@
 # Pricing Engine
 
-[English](README.md) | **Polski**
-
 [![Tests](https://github.com/tlabedzki/Pricing-Engine/actions/workflows/tests.yml/badge.svg)](https://github.com/tlabedzki/Pricing-Engine/actions/workflows/tests.yml)
 ![Python 3.11](https://img.shields.io/badge/python-3.11-3776AB)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 [![Release](https://img.shields.io/github/v/release/tlabedzki/Pricing-Engine)](https://github.com/tlabedzki/Pricing-Engine/releases)
+[![English](docs/img/flag-gb.svg "English")](README.md)
 
 Silnik propozycji cen dla fikcyjnego sklepu internetowego: nowa cena każdego produktu, powód w jednym zdaniu i szacunek
 zysku, sprawdzone z kluczem odpowiedzi.
@@ -375,7 +374,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-63 testy (około 15 s) sprawdzają estymatory na danych o znanej elastyczności, reguły silnika na losowych produktach,
+67 testów (około 15 s) sprawdza estymatory na danych o znanej elastyczności, reguły silnika na losowych produktach,
 symulację, tabelę konkurencji, wiersz poleceń i aplikację. Test aplikacji potrzebuje danych z `get_data.py`; bez nich
 jest pomijany, tak jak w CI.
 

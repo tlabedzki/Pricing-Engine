@@ -3,6 +3,20 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.3] - 2026-11-27
+
+Only the README (a new section, the test count) and the version numbers change; the engine, the app and the
+numbers stay as in 1.1.2.
+
+### Added
+
+- README section "Why these tools": what each key tool does in the project, why it fits how the data is read and
+  rebuilt from a fresh clone, and which alternative was considered and why it was dropped.
+
+### Fixed
+
+- The package's `__version__` still said 1.1.0; it now matches `pyproject.toml`.
+
 ## [1.1.2] - 2026-11-24
 
 The engine and the app are unchanged; the shop data and every number built on them change.

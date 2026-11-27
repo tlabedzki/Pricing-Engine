@@ -318,6 +318,22 @@ Column descriptions:
 [docs/columns.md in Data-Generator](https://github.com/tlabedzki/Data-Generator/blob/v1.7.1/docs/columns.md).
 The true elasticity goes to `data/raw/truth.json` straight from the generator settings.
 
+## Why these tools
+
+Each tool was picked for how this project reads its data: one run reads four generated tables from local Parquet
+files, estimates the elasticity of each category once, and then computes a price for every product again whenever a
+rule changes. A fresh clone rebuilds everything with two commands, with no server, account, key or paid service.
+
+| Tool | What it does here and why it fits | Alternative considered |
+|---|---|---|
+| Data Generator | Generates the fictional shop and knows the true elasticity of every category, so the estimate is checked against it; since v1.5.0 it also generates the competitor prices. | Competitor prices made by this project alone would have kept it self-contained, but they went into Data Generator, so the competitors come from the same generator as the shop. |
+| pandas, numpy and pyarrow | Read only the needed columns of the Parquet tables and run the engine and the simulation; the versions match Data Generator, which runs in this project's environment. | – |
+| DuckDB | Runs the one SQL query (`sql/price_periods.sql`) that turns order lines and list-price history into lines and exposure per price period, straight on the pandas frames and without a server. | – |
+| SciPy | Fits the elasticity by maximum likelihood written in the project: a Poisson model within each product, so product popularity cancels out, and a Poisson regression of quantity on the discount. | – |
+| matplotlib | Draws the README charts with the colours and the Inter font of the app on a white background, so they look the same in GitHub's light and dark themes and two runs give the same bytes. | – |
+| Dash, Mantine and Plotly | The app with the rule sliders and its charts, built from the same blocks as every app in this portfolio; a test checks that its headline numbers are the engine's numbers. | Streamlit, the app in version 1.0.0: replaced so the portfolio has one look; styling Streamlit to that look gave the colours and the font but not the layout. |
+| pytest | Tests the estimators on data with a known elasticity and the rules on random products; a competitor table made by the project lets CI run without the generated data. | – |
+
 ## Project structure
 
 <details><summary>Show the tree</summary>
@@ -354,7 +370,7 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-50 tests (about 20 s) check the estimators on data with a known elasticity, the engine's rules on random products, the
+63 tests (about 15 s) check the estimators on data with a known elasticity, the engine's rules on random products, the
 simulation, the competitor table, the command line and the app. The app test needs the data from `get_data.py`;
 without them it is skipped, as in CI.
 
@@ -363,4 +379,4 @@ without them it is skipped, as in CI.
 MIT, see [LICENSE](LICENSE). The Inter typeface in `ui/assets/fonts/` is under the SIL Open Font License 1.1
 ([OFL-inter.txt](ui/assets/fonts/OFL-inter.txt)). [Changelog](CHANGELOG.md).
 
-README last updated: 2026-11-24
+README last updated: 2026-11-27

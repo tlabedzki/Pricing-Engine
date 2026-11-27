@@ -3,6 +3,16 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.4] - 2026-11-27
+
+### Added
+
+- A Polish version of the README (`READMEPL.md`) with an English | Polski link under the title of both files.
+
+### Fixed
+
+- Two sentences of the Polish README text in `scripts/readme_blocks.py` reworded to read naturally.
+
 ## [1.1.3] - 2026-11-27
 
 Only the README (a new section, the test count) and the version numbers change; the engine, the app and the

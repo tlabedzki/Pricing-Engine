@@ -93,12 +93,12 @@ Trafienie to prawda wewnątrz przedziału.
 
 <!-- generated:elasticity -->
 Sam sygnał ze zmian cen katalogowych myli się średnio o 0,45, sam sygnał z rabatów o 0,13, a połączenie z przyciąganiem
-do średniej o 0,12. Prawdziwa wartość leży w 90% przedziale w 12 z 15 kategorii.
+do średniej o 0,12. Prawdziwa wartość leży w 90-procentowym przedziale w 12 z 15 kategorii.
 
 ![Szacunek elastyczności trafia w prawdę w 12 z 15 kategorii](docs/img/elasticity-vs-truth.png)
 
-Na miedziano kategorie, w których prawda wypada poza przedziałem: Zdrowie (0,47 zamiast 0,60), Książki i media (0,85
-zamiast 1,00), Elektronika (1,83 zamiast 1,60).
+Kategorie, w których prawda wypada poza przedziałem, są zaznaczone na miedziano: Zdrowie (0,47 zamiast 0,60), Książki i
+media (0,85 zamiast 1,00), Elektronika (1,83 zamiast 1,60).
 <!-- /generated:elasticity -->
 
 **Co to znaczy dla sklepu.** Sama historia cen nie wystarczy: ceny zmieniają się rzadko, a większość produktów

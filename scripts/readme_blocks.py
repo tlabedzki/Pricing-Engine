@@ -98,10 +98,10 @@ def blocks(lang, fmt, shop, table, snap, proposals, frame, truth, spread, by_cat
         out["elasticity"] = (
             f"Sam sygnał ze zmian cen katalogowych myli się średnio o {n(mae['list_price'], 2)}, sam sygnał z rabatów "
             f"o {n(mae['discount'], 2)}, a połączenie z przyciąganiem do średniej o {n(mae['elasticity'], 2)}. "
-            f"Prawdziwa wartość leży w 90% przedziale w {e['hits']} z {e['n']} kategorii.\n\n"
+            f"Prawdziwa wartość leży w 90-procentowym przedziale w {e['hits']} z {e['n']} kategorii.\n\n"
             f"![Szacunek elastyczności trafia w prawdę w {e['hits']} z {e['n']} kategorii]"
             f"(docs/img/elasticity-vs-truth.png)\n\n"
-            f"Na miedziano kategorie, w których prawda wypada poza przedziałem: {miss_list()}.")
+            f"Kategorie, w których prawda wypada poza przedziałem, są zaznaczone na miedziano: {miss_list()}.")
         out["proposals"] = (
             f"Na {n(total)} produktów w sprzedaży silnik podnosi {n(base['raise'])} cen, obniża {n(base['lower'])} "
             f"i zostawia {n(base['keep'])}. W progu +5% nad medianą konkurencji mieści się dziś "
